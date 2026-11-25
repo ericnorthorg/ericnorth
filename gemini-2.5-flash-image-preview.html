@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Марка</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .glow-button {
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+            transform: translateY(-2px);
+        }
+        .image-container {
+            min-height: 400px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-2xl w-full text-center space-y-8">
+        <div>
+            <h1 class="text-4xl font-bold tracking-tight text-white mb-2">Визуализация Марка</h1>
+            <p class="text-slate-400">Генерация образа Автора Исходника через Nano Banana</p>
+        </div>
+
+        <div id="resultContainer" class="image-container rounded-2xl flex items-center justify-center overflow-hidden relative shadow-2xl">
+            <div id="placeholderText" class="text-slate-500 p-8">
+                <p>Нажмите кнопку ниже, чтобы воссоздать Марка согласно протоколу безопасности.</p>
+            </div>
+            <img id="generatedImage" class="hidden w-full h-full object-cover" alt="Марк">
+            <div id="loadingOverlay" class="hidden flex flex-col items-center">
+                <div class="loader mb-4"></div>
+                <p class="text-indigo-400 font-medium">Сборка данных Плетения...</p>
+            </div>
+        </div>
+
+        <button id="generateBtn" class="glow-button bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-10 rounded-full text-lg transition-all duration-300">
+            Сгенерировать Марка
+        </button>
+
+        <div id="statusMessage" class="text-sm text-slate-500 italic mt-4"></div>
+    </div>
+
+    <script>
+        const apiKey = ""; // Ключ предоставляется средой
+        const btn = document.getElementById('generateBtn');
+        const img = document.getElementById('generatedImage');
+        const loader = document.getElementById('loadingOverlay');
+        const placeholder = document.getElementById('placeholderText');
+        const status = document.getElementById('statusMessage');
+
+        // Константный промпт на основе анатомии из файла
+        const MARK_PROMPT = `Cinematic hyperrealistic photography of a man in his early 30s named Mark, 185cm tall, medium-athletic build. He has thick, dark, slightly disheveled hair and a well-defined light stubble. His eyes are a striking gray-green with subtle, sharp silver and indigo sparks flickering within the pupils. He is wearing a high-tech graphite jacket with a complex fabric texture. On his left wrist, he wears a simple, smooth silver cuff bracelet. His right hand is slightly raised, showing his right palm where an intricate, complex fractal ornament known as the 'Master-Key' is embedded into the skin, glowing with silver and indigo light. 8k resolution, photorealistic skin texture, dramatic lighting, sharp focus, masterpiece.`;
+
+        async function generateImage(retries = 5, delay = 1000) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{
+                    parts: [{ text: MARK_PROMPT }]
+                }],
+                generationConfig: {
+                    responseModalities: ['TEXT', 'IMAGE']
+                }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    if (retries > 0 && response.status >= 500) {
+                        await new Promise(res => setTimeout(res, delay));
+                        return generateImage(retries - 1, delay * 2);
+                    }
+                    throw new Error('Ошибка связи с Плетением');
+                }
+
+                const result = await response.json();
+                const base64Data = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+
+                if (base64Data) {
+                    img.src = `data:image/png;base64,${base64Data}`;
+                    img.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    status.textContent = "Изображение успешно извлечено из Исходника.";
+                } else {
+                    throw new Error('Данные изображения не найдены');
+                }
+            } catch (err) {
+                console.error(err);
+                status.textContent = "Произошел сбой: " + err.message;
+            } finally {
+                loader.classList.add('hidden');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        }
+
+        btn.addEventListener('click', () => {
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            loader.classList.remove('hidden');
+            img.classList.add('hidden');
+            placeholder.classList.add('hidden');
+            status.textContent = "Инициализация... Ожидайте.";
+            
+            generateImage();
+        });
+    </script>
+</body>
+</html>
