@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Админка | Eric North</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+<style>
+    :root {
+        --accent: #ff500a; --accent-soft: rgba(255, 80, 10, 0.1);
+        --bg: #f4f3f1; --panel: #ffffff; --text: #222; --muted: #6b6b6b; --border: #e3e1dd;
+        --danger: #c62828; --ok: #2e7d32; --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
+    [hidden] { display: none !important; }
+    a { color: var(--accent); }
+    h1, h2, h3 { font-family: 'Merriweather', serif; margin: 0; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+
+    .btn { border: 1px solid var(--border); background: var(--panel); padding: 8px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); white-space: nowrap; }
+    .btn:hover { border-color: var(--accent); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-danger { color: var(--danger); }
+    .btn-danger:hover { border-color: var(--danger); }
+    .btn-icon { padding: 6px 9px; }
+    .btn:disabled { opacity: .5; cursor: default; }
+
+    /* Вход */
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .login-card { background: var(--panel); border-radius: 16px; padding: 36px; width: 100%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,.06); }
+    .login-card h1 { font-size: 1.5rem; margin-bottom: 6px; }
+    .login-card h1 span { color: var(--accent); }
+    .login-card p { color: var(--muted); margin: 0 0 24px; }
+    .login-card .btn-primary { width: 100%; justify-content: center; padding: 11px; margin-top: 8px; }
+    .link-btn { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; margin-top: 14px; }
+
+    /* Каркас */
+    .layout { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
+    .sidebar { background: #1d1d1d; color: #ddd; padding: 22px 14px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+    .sidebar .brand { font-family: 'Merriweather', serif; font-size: 1.15rem; color: #fff; padding: 0 10px 22px; }
+    .sidebar .brand span { color: var(--accent); }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: #cfcfcf; border: none; background: none; width: 100%; text-align: left; }
+    .nav-item i { width: 18px; text-align: center; }
+    .nav-item:hover { background: #2a2a2a; color: #fff; }
+    .nav-item.active { background: var(--accent); color: #fff; }
+    .sidebar .spacer { flex: 1; }
+    .sidebar .who { font-size: .8rem; color: #999; padding: 10px 12px; word-break: break-all; }
+    .main { padding: 28px 36px 80px; max-width: 1100px; width: 100%; }
+    .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+    .page-head h2 { font-size: 1.5rem; }
+    .page-head .sub { color: var(--muted); font-size: .9rem; margin-top: 4px; font-family: 'Inter', sans-serif; }
+
+    /* Список */
+    .list { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: #fbfaf9; }
+    .row .thumb { width: 54px; height: 40px; border-radius: 6px; object-fit: cover; background: #eee; flex-shrink: 0; }
+    .row .info { flex: 1; min-width: 0; cursor: pointer; }
+    .row .title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row .meta { color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row .actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .badge { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: #eee; color: #555; margin-left: 8px; vertical-align: middle; }
+    .badge.hidden-b { background: #f2e5e5; color: var(--danger); }
+    .badge.accent { background: var(--accent-soft); color: var(--accent); }
+    .empty { padding: 40px; text-align: center; color: var(--muted); }
+
+    /* Форма */
+    .form { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--border); padding: 26px; }
+    .form-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .lang-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .lang-tabs button { border: none; background: none; padding: 7px 16px; cursor: pointer; font-weight: 600; color: var(--muted); }
+    .lang-tabs button.active { background: var(--accent); color: #fff; }
+    .field { margin-bottom: 18px; }
+    .field > label { display: block; font-weight: 600; font-size: .88rem; margin-bottom: 6px; }
+    .field > label .lang-mark { color: var(--accent); font-size: .75rem; margin-left: 6px; }
+    .field .hint { color: var(--muted); font-size: .8rem; margin-top: 5px; }
+    .input, textarea.input, select.input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; outline: none; }
+    .input:focus { border-color: var(--accent); }
+    textarea.input { min-height: 90px; resize: vertical; line-height: 1.5; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+    .check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 500; }
+    .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+    .img-field { display: flex; gap: 14px; align-items: flex-start; }
+    .img-field .preview { width: 150px; height: 100px; border-radius: 8px; object-fit: cover; background: #f0efed; border: 1px solid var(--border); flex-shrink: 0; }
+    .img-field .controls { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .rich .ql-toolbar { border-radius: 8px 8px 0 0; border-color: var(--border); }
+    .rich .ql-container { border-radius: 0 0 8px 8px; border-color: var(--border); font-family: 'Inter', sans-serif; font-size: 15px; }
+    .rich .ql-editor { min-height: 160px; max-height: 60vh; overflow-y: auto; line-height: 1.65; }
+    .rich.tall .ql-editor { min-height: 380px; max-height: 75vh; }
+    .form-bottom { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .form-bottom .left { display: flex; gap: 10px; }
+    .section-title { font-size: 1.05rem; margin: 30px 0 14px; padding-top: 22px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .repeater-item { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; background: #fcfbfa; }
+    .repeater-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; }
+    .icon-preview { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 8px; color: var(--accent); flex-shrink: 0; }
+    .inline { display: flex; gap: 10px; align-items: center; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #222; color: #fff; padding: 12px 18px; border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.2); z-index: 1000; max-width: 420px; }
+    .toast.ok { background: var(--ok); }
+    .toast.err { background: var(--danger); }
+    .loading { padding: 40px; text-align: center; color: var(--muted); }
+
+    @media (max-width: 800px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 12px; }
+        .sidebar .brand { width: 100%; padding-bottom: 8px; }
+        .nav-item { width: auto; }
+        .sidebar .spacer, .sidebar .who { display: none; }
+        .main { padding: 20px 14px 60px; }
+        .grid-2 { grid-template-columns: 1fr; }
+        .img-field { flex-direction: column; }
+    }
+</style>
+</head>
+<body>
+
+<!-- ВХОД -->
+<div id="login-view" class="login-wrap" hidden>
+    <form class="login-card" id="login-form">
+        <h1>ERIC <span>NORTH</span></h1>
+        <p id="login-sub">Вход в админку сайта</p>
+        <div id="login-fields">
+            <div class="field"><label>Email</label><input class="input" type="email" id="login-email" autocomplete="username" required></div>
+            <div class="field" id="login-pass-wrap"><label>Пароль</label><input class="input" type="password" id="login-pass" autocomplete="current-password"></div>
+        </div>
+        <div id="newpass-fields" hidden>
+            <div class="field"><label>Новый пароль</label><input class="input" type="password" id="new-pass" autocomplete="new-password" minlength="8"></div>
+        </div>
+        <button class="btn btn-primary" type="submit" id="login-btn">Войти</button>
+        <button class="link-btn" type="button" id="forgot-btn">Забыли пароль?</button>
+        <div id="login-msg" class="hint" style="margin-top:14px;"></div>
+    </form>
+</div>
+
+<!-- АДМИНКА -->
+<div id="app-view" class="layout" hidden>
+    <aside class="sidebar">
+        <div class="brand">ERIC <span>NORTH</span></div>
+        <nav id="nav"></nav>
+        <div class="spacer"></div>
+        <a class="nav-item" href="index.html" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i>Открыть сайт</a>
+        <button class="nav-item" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>Выйти</button>
+        <div class="who" id="who"></div>
+    </aside>
+    <main class="main" id="main"></main>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+const SUPABASE_URL = 'https://eaumjrfaosozzoebnlcf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_GqIgz56xMe8Qq68x5tqGZw_GybLuFuT';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ---------- УТИЛИТЫ ---------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const stripHtml = h => { const d = document.createElement('div'); d.innerHTML = h || ''; return (d.textContent || '').trim(); };
+function el(tag, attrs = {}, children = []) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+        if (v === undefined || v === null || v === false) continue;
+        if (k === 'class') e.className = v;
+        else if (k === 'html') e.innerHTML = v;
+        else if (k === 'text') e.textContent = v;
+        else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+        else e.setAttribute(k, v === true ? '' : v);
+    }
+    (Array.isArray(children) ? children : [children]).forEach(c => c != null && e.append(c));
+    return e;
+}
+let toastTimer;
+function toast(msg, type = '') {
+    const t = $('#toast');
+    t.textContent = msg; t.className = 'toast ' + type; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, type === 'err' ? 7000 : 3000);
+}
+function errText(e) {
+    const m = e?.message || String(e);
+    if (/row-level security|permission denied/i.test(m)) return 'Нет прав на изменение. Проверьте, что вы вошли под почтой администратора.';
+    if (/duplicate key/i.test(m)) return 'Запись с таким ID уже существует.';
+    if (/posts_id_check|books_id_check/.test(m)) return 'ID может содержать только латинские строчные буквы, цифры, - и _.';
+    return m;
+}
+const TR = { а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',і:'i',ї:'yi',є:'ye',ґ:'g' };
+const slugify = s => String(s || '').toLowerCase().split('').map(c => TR[c] ?? c).join('').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 50);
+
+/* ---------- ОПИСАНИЕ РАЗДЕЛОВ ---------- */
+const ICONS = [
+    'fa-solid fa-feather-pointed', 'fa-solid fa-book-open', 'fa-regular fa-note-sticky', 'fa-solid fa-diagram-project',
+    'fa-solid fa-book', 'fa-solid fa-scroll', 'fa-solid fa-map', 'fa-solid fa-wand-magic-sparkles', 'fa-solid fa-dragon',
+    'fa-solid fa-envelope', 'fa-solid fa-star', 'fa-solid fa-pen-nib', 'fa-solid fa-newspaper', 'fa-solid fa-user',
+    'fa-solid fa-headphones', 'fa-solid fa-film', 'fa-solid fa-image', 'fa-solid fa-link', 'fa-solid fa-gift', 'fa-solid fa-heart'
+];
+const SOCIAL_PRESETS = [
+    { name: 'Facebook', icon: 'fa-brands fa-facebook-f' }, { name: 'X (Twitter)', icon: 'fa-brands fa-x-twitter' },
+    { name: 'YouTube', icon: 'fa-brands fa-youtube' }, { name: 'Instagram', icon: 'fa-brands fa-instagram' },
+    { name: 'Telegram', icon: 'fa-brands fa-telegram' }, { name: 'TikTok', icon: 'fa-brands fa-tiktok' },
+    { name: 'Wattpad', icon: 'fa-solid fa-book-open-reader' }, { name: 'Royal Road', icon: 'fa-solid fa-crown' },
+    { name: 'Patreon', icon: 'fa-brands fa-patreon' }, { name: 'Boosty', icon: 'fa-solid fa-mug-hot' },
+    { name: 'Discord', icon: 'fa-brands fa-discord' }, { name: 'Reddit', icon: 'fa-brands fa-reddit-alien' },
+    { name: 'Goodreads', icon: 'fa-brands fa-goodreads-g' }, { name: 'Email', icon: 'fa-solid fa-envelope' },
+    { name: 'Сайт', icon: 'fa-solid fa-globe' }
+];
+const POST_CATEGORIES = [['stories', 'Рассказы'], ['lore', 'Лор'], ['news', 'Новости']];
+
+const SECTIONS = {
+    home: {
+        title: 'Главная', icon: 'fa-solid fa-house', table: 'home_blocks', key: 'id', ordered: true,
+        sub: 'Шапка (hero) и блоки с картинкой и кнопкой на главной странице',
+        addLabel: 'Добавить блок', newRow: () => ({ kind: 'promo', reverse: false, hidden: false }),
+        rowTitle: r => r.title_ru || '(без заголовка)',
+        rowMeta: r => r.kind === 'hero' ? 'Шапка страницы' : (r.btn_text_ru ? `Кнопка «${r.btn_text_ru}» → ${r.link || '—'}` : 'Без кнопки'),
+        rowBadge: r => r.kind === 'hero' ? 'Шапка' : null,
+        rowImage: r => r.image,
+        canDelete: r => r.kind !== 'hero',
+        fields: r => r.kind === 'hero' ? [
+            { key: 'image', label: 'Фоновая картинка', type: 'image', hint: 'Необязательно. Без картинки шапка остаётся светлой.' },
+            { key: 'title', label: 'Заголовок — обычная часть', type: 'text', i18n: true },
+            { key: 'text', label: 'Заголовок — выделенная цветом часть', type: 'text', i18n: true },
+            { key: 'subline', label: 'Подзаголовок', type: 'textarea', i18n: true },
+        ] : [
+            { key: 'image', label: 'Картинка', type: 'image' },
+            { key: 'title', label: 'Заголовок', type: 'text', i18n: true },
+            { key: 'text', label: 'Текст', type: 'textarea', i18n: true },
+            { key: 'btn_text', label: 'Текст кнопки', type: 'text', i18n: true },
+            { key: 'link', label: 'Куда ведёт кнопка', type: 'link' },
+            { key: 'reverse', label: 'Картинка справа (зеркально)', type: 'bool' },
+            { key: 'hidden', label: 'Скрыть блок', type: 'bool' },
+        ],
+    },
+    posts: {
+        title: 'Блог', icon: 'fa-solid fa-feather-pointed', table: 'posts', key: 'id', textKey: true, ordered: true,
+        sub: 'Пост с ID «featured» показывается в блоге как «Избранное». Скрытые посты не видны в списке, но открываются по прямой ссылке.',
+        addLabel: 'Новый пост', newRow: () => ({ category: 'stories', hidden: false }),
+        rowTitle: r => r.title_ru || '(без заголовка)',
+        rowMeta: r => `${r.meta_ru || ''} · posts.html?id=${r.id}`,
+        rowBadge: r => r.id === 'featured' ? 'Избранное' : null,
+        rowImage: r => r.image, viewUrl: r => `posts.html?id=${r.id}`,
+        fields: () => [
+            { key: 'id', label: 'ID (адрес поста)', type: 'slug', from: 'title_ru', hint: 'Латиница, цифры, - и _. Используется в ссылке posts.html?id=… и после создания не меняется.' },
+            { key: 'title', label: 'Заголовок', type: 'text', i18n: true },
+            { key: 'image', label: 'Обложка', type: 'image' },
+            { key: 'category', label: 'Рубрика (для фильтра в блоге)', type: 'select', options: POST_CATEGORIES },
+            { key: 'meta', label: 'Подпись над заголовком', type: 'text', i18n: true, hint: 'Например «Лор | Архивы». Часть до «|» показывается на карточке.' },
+            { key: 'body', label: 'Текст поста', type: 'rich', i18n: true, tall: true },
+            { key: 'hidden', label: 'Скрыть из списка блога', type: 'bool' },
+        ],
+    },
+    books: {
+        title: 'Книги', icon: 'fa-solid fa-book', table: 'books', key: 'id', textKey: true, ordered: true,
+        sub: 'Книги на странице «Библиотека» и их главы для читалки',
+        addLabel: 'Новая книга', newRow: () => ({ hidden: false }),
+        rowTitle: r => r.title_ru || '(без названия)',
+        rowMeta: r => `${r.tags_ru || ''} · ID: ${r.id}`,
+        rowImage: r => r.cover, viewUrl: r => 'books.html',
+        fields: () => [
+            { key: 'id', label: 'ID книги', type: 'slug', from: 'title_en', hint: 'Латиница, например book2. Используется в ссылках на главы и после создания не меняется.' },
+            { key: 'title', label: 'Название', type: 'text', i18n: true },
+            { key: 'cover', label: 'Обложка', type: 'image' },
+            { key: 'tags', label: 'Жанры / теги', type: 'text', i18n: true, hint: 'Через запятую' },
+            { key: 'desc', label: 'Описание', type: 'textarea', i18n: true },
+            { key: 'hidden', label: 'Скрыть книгу', type: 'bool' },
+        ],
+        afterForm: renderChaptersBlock,
+    },
+    chapters: {
+        title: 'Глава', table: 'chapters', key: 'id', hiddenNav: true,
+        fields: () => [
+            { key: 'chapter_num', label: 'Номер главы', type: 'number', hint: 'Читалка листает главы по номерам 1, 2, 3… без пропусков.' },
+            { key: 'title', label: 'Название главы', type: 'text', i18n: true },
+            { key: 'text', label: 'Текст главы', type: 'rich', i18n: true, tall: true },
+            { key: 'hidden', label: 'Скрыть главу', type: 'bool' },
+        ],
+    },
+    projects: {
+        title: 'Проекты', icon: 'fa-solid fa-diagram-project', table: 'projects', key: 'id', ordered: true,
+        sub: 'Карточки на странице «Проекты» с полосой прогресса',
+        addLabel: 'Новый проект', newRow: () => ({ status_class: 'status-active', progress: 0, hidden: false }),
+        rowTitle: r => r.title_ru || '(без названия)',
+        rowMeta: r => `${r.status_ru || ''} · ${r.progress}%`, viewUrl: () => 'projects.html',
+        fields: () => [
+            { key: 'title', label: 'Название', type: 'text', i18n: true },
+            { key: 'desc', label: 'Описание', type: 'textarea', i18n: true },
+            { key: 'status', label: 'Статус (надпись на плашке)', type: 'text', i18n: true, hint: 'Например «В работе», «Концепт»' },
+            { key: 'progress_label', label: 'Подпись прогресса', type: 'text', i18n: true, hint: 'Например «Готовность», «Черновик»' },
+            { key: 'progress', label: 'Прогресс, %', type: 'number', min: 0, max: 100 },
+            { key: 'hidden', label: 'Скрыть проект', type: 'bool' },
+        ],
+    },
+    notes: {
+        title: 'Заметки', icon: 'fa-regular fa-note-sticky', table: 'notes', key: 'id', ordered: true,
+        sub: 'Короткие апдейты. Верхняя заметка в списке — первая на сайте.',
+        addLabel: 'Новая заметка', newRow: () => ({ hidden: false }), addToTop: true,
+        rowTitle: r => r.title_ru || stripHtml(r.text_ru).slice(0, 60) || '(без заголовка)',
+        rowMeta: r => r.date_ru || '', viewUrl: () => 'notes.html',
+        fields: () => [
+            { key: 'date', label: 'Дата (как показывать)', type: 'text', i18n: true, hint: 'Например «Март 2026» / «March 2026»' },
+            { key: 'title', label: 'Заголовок', type: 'text', i18n: true },
+            { key: 'text', label: 'Текст', type: 'rich', i18n: true },
+            { key: 'hidden', label: 'Скрыть заметку', type: 'bool' },
+        ],
+    },
+    settings: { title: 'Настройки', icon: 'fa-solid fa-sliders', custom: renderSettings },
+};
+const NAV_ORDER = ['home', 'posts', 'books', 'projects', 'notes', 'settings'];
+
+/* ---------- СОСТОЯНИЕ ---------- */
+let state = { section: null, editLang: 'ru' };
+let linkSuggestions = [];
+
+/* ---------- ВХОД ---------- */
+async function boot() {
+    if (/type=recovery/.test(location.hash)) { showLogin('newpass'); return; }
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) await enterApp(session); else showLogin();
+}
+function showLogin(mode = 'login', msg = '') {
+    $('#app-view').hidden = true; $('#login-view').hidden = false;
+    const isNew = mode === 'newpass', isReset = mode === 'reset';
+    $('#login-fields').hidden = isNew; $('#newpass-fields').hidden = !isNew;
+    $('#login-pass-wrap').hidden = isReset;
+    $('#login-pass').required = mode === 'login';
+    $('#login-btn').textContent = isNew ? 'Сохранить пароль' : isReset ? 'Отправить ссылку' : 'Войти';
+    $('#forgot-btn').textContent = isReset ? '← Назад ко входу' : 'Забыли пароль?';
+    $('#forgot-btn').hidden = isNew;
+    $('#login-sub').textContent = isNew ? 'Придумайте новый пароль (минимум 8 символов)' : isReset ? 'Пришлём ссылку для смены пароля на почту' : 'Вход в админку сайта';
+    $('#login-msg').textContent = msg;
+    $('#login-form').dataset.mode = mode;
+}
+$('#forgot-btn').onclick = () => showLogin($('#login-form').dataset.mode === 'reset' ? 'login' : 'reset');
+$('#login-form').onsubmit = async e => {
+    e.preventDefault();
+    const mode = $('#login-form').dataset.mode, btn = $('#login-btn'), msg = $('#login-msg');
+    btn.disabled = true; msg.textContent = '';
+    try {
+        if (mode === 'login') {
+            const { data, error } = await sb.auth.signInWithPassword({ email: $('#login-email').value.trim(), password: $('#login-pass').value });
+            if (error) throw error;
+            await enterApp(data.session);
+        } else if (mode === 'reset') {
+            const { error } = await sb.auth.resetPasswordForEmail($('#login-email').value.trim(), { redirectTo: location.origin + location.pathname });
+            if (error) throw error;
+            msg.textContent = 'Если такой пользователь есть, письмо со ссылкой уже отправлено. Откройте его на этом устройстве.';
+        } else if (mode === 'newpass') {
+            const { error } = await sb.auth.updateUser({ password: $('#new-pass').value });
+            if (error) throw error;
+            const { data: { session } } = await sb.auth.getSession();
+            toast('Пароль сохранён', 'ok');
+            await enterApp(session);
+        }
+    } catch (err) {
+        msg.textContent = /Invalid login/i.test(err.message) ? 'Неверная почта или пароль.' : errText(err);
+    } finally { btn.disabled = false; }
+};
+sb.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') showLogin('newpass');
+});
+$('#logout-btn').onclick = async () => { await sb.auth.signOut(); showLogin(); };
+
+async function enterApp(session) {
+    const { data: isAdmin, error } = await sb.rpc('is_admin');
+    if (error || !isAdmin) {
+        await sb.auth.signOut();
+        showLogin('login', `У аккаунта ${session.user.email} нет прав администратора.`);
+        return;
+    }
+    $('#login-view').hidden = true; $('#app-view').hidden = false;
+    $('#who').textContent = session.user.email;
+    const nav = $('#nav'); nav.innerHTML = '';
+    NAV_ORDER.forEach(k => nav.append(el('button', { class: 'nav-item', 'data-s': k, onclick: () => go(k) },
+        [el('i', { class: SECTIONS[k].icon }), SECTIONS[k].title])));
+    go(location.hash.slice(1) in SECTIONS ? location.hash.slice(1) : 'home');
+}
+function go(section) {
+    state.section = section;
+    if (location.hash.slice(1) !== section) history.replaceState(null, '', '#' + section);
+    document.querySelectorAll('#nav .nav-item').forEach(b => b.classList.toggle('active', b.dataset.s === section));
+    const s = SECTIONS[section];
+    if (s.custom) s.custom(); else renderList(section);
+}
+
+/* ---------- ССЫЛКИ ДЛЯ ПОДСКАЗОК ---------- */
+async function loadLinkSuggestions() {
+    const [p, c] = await Promise.all([
+        sb.from('posts').select('id,title_ru').order('sort_order'),
+        sb.from('chapters').select('book_id,chapter_num,title_ru').order('book_id').order('chapter_num'),
+    ]);
+    linkSuggestions = [
+        ['index.html', 'Главная'], ['blog.html', 'Блог'], ['books.html', 'Книги'], ['notes.html', 'Заметки'], ['projects.html', 'Проекты'],
+        ...(p.data || []).map(x => [`posts.html?id=${x.id}`, `Пост: ${x.title_ru}`]),
+        ...(c.data || []).map(x => [`reader.html?book=${x.book_id}&chapter=${x.chapter_num}`, `Глава: ${x.title_ru || x.chapter_num}`]),
+    ];
+    const dl = $('#link-options') || document.body.appendChild(el('datalist', { id: 'link-options' }));
+    dl.innerHTML = ''; linkSuggestions.forEach(([v, l]) => dl.append(el('option', { value: v, label: l })));
+}
+
+/* ---------- СПИСОК ---------- */
+async function renderList(section, opts = {}) {
+    const s = SECTIONS[section], main = $('#main');
+    main.innerHTML = '<div class="loading">Загрузка…</div>';
+    let q = sb.from(s.table).select(opts.select || '*');
+    if (opts.filter) q = q.eq(opts.filter[0], opts.filter[1]);
+    q = s.ordered ? q.order('sort_order').order(s.key) : q.order(s.key);
+    const { data, error } = await q;
+    if (error) { main.innerHTML = ''; toast(errText(error), 'err'); return; }
+    if (state.section !== section) return;
+    main.innerHTML = '';
+    const add = el('button', { class: 'btn btn-primary', onclick: () => openForm(section, null, data) }, [el('i', { class: 'fa-solid fa-plus' }), s.addLabel]);
+    main.append(el('div', { class: 'page-head' }, [el('div', {}, [el('h2', { text: s.title }), el('div', { class: 'sub', text: s.sub || '' })]), add]));
+    const list = el('div', { class: 'list' });
+    if (!data.length) list.append(el('div', { class: 'empty', text: 'Пока пусто' }));
+    data.forEach((r, i) => list.append(listRow(section, r, i, data)));
+    main.append(list);
+}
+function listRow(section, r, i, all) {
+    const s = SECTIONS[section];
+    const badges = [];
+    if (s.rowBadge && s.rowBadge(r)) badges.push(el('span', { class: 'badge accent', text: s.rowBadge(r) }));
+    if (r.hidden) badges.push(el('span', { class: 'badge hidden-b', text: 'скрыто' }));
+    const img = s.rowImage ? (s.rowImage(r) ? el('img', { class: 'thumb', src: s.rowImage(r), alt: '', loading: 'lazy' }) : el('div', { class: 'thumb' })) : null;
+    const actions = el('div', { class: 'actions' });
+    if (s.ordered) {
+        actions.append(
+            el('button', { class: 'btn btn-icon', title: 'Выше', disabled: i === 0, onclick: () => move(section, all, i, -1) }, el('i', { class: 'fa-solid fa-arrow-up' })),
+            el('button', { class: 'btn btn-icon', title: 'Ниже', disabled: i === all.length - 1, onclick: () => move(section, all, i, 1) }, el('i', { class: 'fa-solid fa-arrow-down' })));
+    }
+    actions.append(el('button', { class: 'btn btn-icon', title: 'Редактировать', onclick: () => openForm(section, r, all) }, el('i', { class: 'fa-solid fa-pen' })));
+    return el('div', { class: 'row' }, [img,
+        el('div', { class: 'info', onclick: () => openForm(section, r, all) }, [
+            el('div', { class: 'title' }, [document.createTextNode(s.rowTitle(r)), ...badges]),
+            el('div', { class: 'meta', text: s.rowMeta ? s.rowMeta(r) : '' })]),
+        actions]);
+}
+async function move(section, all, i, dir) {
+    const s = SECTIONS[section], j = i + dir;
+    const arr = all.slice(); [arr[i], arr[j]] = [arr[j], arr[i]];
+    const updates = arr.map((r, k) => ({ r, n: k + 1 })).filter(x => x.r.sort_order !== x.n);
+    for (const { r, n } of updates) {
+        const { error } = await sb.from(s.table).update({ sort_order: n }).eq(s.key, r[s.key]);
+        if (error) { toast(errText(error), 'err'); break; }
+    }
+    renderList(section);
+}
+
+/* ---------- ФОРМА ---------- */
+let editors = [];
+async function openForm(section, row, all, ctx = {}) {
+    const s = SECTIONS[section], isNew = !row;
+    row = row ? { ...row } : { ...(s.newRow ? s.newRow() : {}), ...(ctx.defaults || {}) };
+    editors = [];
+    if (!linkSuggestions.length) loadLinkSuggestions();
+    const main = $('#main'); main.innerHTML = '';
+    const back = ctx.back || (() => renderList(section));
+    const titleText = isNew ? (s.addLabel || 'Новая запись') : (s.rowTitle ? s.rowTitle(row) : s.title);
+    main.append(el('div', { class: 'page-head' }, [
+        el('div', {}, [el('button', { class: 'link-btn', style: 'margin:0 0 8px', onclick: back, html: '<i class="fa-solid fa-arrow-left"></i> ' + esc(ctx.backLabel || 'Назад к списку') }),
+            el('h2', { text: titleText })]),
+    ]));
+    const form = el('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } });
+    const fields = s.fields(row);
+    const hasI18n = fields.some(f => f.i18n);
+    const top = el('div', { class: 'form-top' });
+    if (hasI18n) {
+        const tabs = el('div', { class: 'lang-tabs' });
+        ['ru', 'en'].forEach(l => tabs.append(el('button', { type: 'button', 'data-l': l, class: state.editLang === l ? 'active' : '', text: l === 'ru' ? 'Русский' : 'English', onclick: () => setEditLang(l) })));
+        top.append(tabs, el('div', { class: 'hint', text: 'Если английский текст пуст, на сайте покажется русский.' }));
+        form.append(top);
+    }
+    const getters = [];
+    fields.forEach(f => {
+        if (f.i18n) ['ru', 'en'].forEach(l => getters.push(renderField(form, f, row, l, isNew)));
+        else getters.push(renderField(form, f, row, null, isNew));
+    });
+    setEditLang(state.editLang);
+
+    const bottom = el('div', { class: 'form-bottom' });
+    const left = el('div', { class: 'left' }, [el('button', { class: 'btn btn-primary', type: 'submit' }, [el('i', { class: 'fa-solid fa-floppy-disk' }), 'Сохранить'])]);
+    if (!isNew && s.viewUrl) left.append(el('a', { class: 'btn', href: s.viewUrl(row), target: '_blank' }, [el('i', { class: 'fa-solid fa-eye' }), 'На сайте']));
+    bottom.append(left);
+    if (!isNew && (!s.canDelete || s.canDelete(row))) bottom.append(el('button', { class: 'btn btn-danger', type: 'button', onclick: remove }, [el('i', { class: 'fa-solid fa-trash' }), 'Удалить']));
+    form.append(bottom);
+    main.append(form);
+    if (!isNew && s.afterForm) s.afterForm(main, row);
+
+    async function save() {
+        const data = {};
+        getters.forEach(g => g(data));
+        if (s.textKey && isNew) {
+            data[s.key] = (data[s.key] || '').trim();
+            if (!/^[a-z0-9_-]+$/.test(data[s.key])) { toast('Укажите ID: латинские строчные буквы, цифры, - и _.', 'err'); return; }
+        }
+        Object.assign(data, ctx.defaults || {});
+        data.updated_at = new Date().toISOString();
+        const btn = form.querySelector('[type=submit]'); btn.disabled = true;
+        let res;
+        if (isNew) {
+            if (s.ordered) {
+                const nums = (all || []).map(r => r.sort_order || 0);
+                if (s.addToTop) {
+                    for (const r of all || []) await sb.from(s.table).update({ sort_order: (r.sort_order || 0) + 1 }).eq(s.key, r[s.key]);
+                    data.sort_order = 1;
+                } else data.sort_order = (nums.length ? Math.max(...nums) : 0) + 1;
+            }
+            res = await sb.from(s.table).insert(data).select().single();
+        } else {
+            delete data[s.key];
+            res = await sb.from(s.table).update(data).eq(s.key, row[s.key]).select().single();
+        }
+        btn.disabled = false;
+        if (res.error) { toast(errText(res.error), 'err'); return; }
+        toast('Сохранено', 'ok');
+        linkSuggestions = [];
+        if (isNew) openForm(section, res.data, all, ctx); else Object.assign(row, res.data);
+    }
+    async function remove() {
+        const name = s.rowTitle ? s.rowTitle(row) : 'запись';
+        const extra = section === 'books' ? '\nВсе главы этой книги тоже будут удалены.' : '';
+        if (!confirm(`Удалить «${name}»? Это нельзя отменить.${extra}`)) return;
+        const { error } = await sb.from(s.table).delete().eq(s.key, row[s.key]);
+        if (error) { toast(errText(error), 'err'); return; }
+        toast('Удалено', 'ok'); linkSuggestions = []; back();
+    }
+}
+function setEditLang(l) {
+    state.editLang = l;
+    document.querySelectorAll('.lang-tabs button').forEach(b => b.classList.toggle('active', b.dataset.l === l));
+    document.querySelectorAll('[data-lang-field]').forEach(f => f.hidden = f.dataset.langField !== l);
+}
+
+function renderField(form, f, row, lang, isNew) {
+    const key = lang ? `${f.key}_${lang}` : f.key;
+    const val = row[key];
+    const wrap = el('div', { class: 'field', 'data-lang-field': lang || undefined });
+    const label = el('label', { text: f.label }, lang ? el('span', { class: 'lang-mark', text: lang.toUpperCase() }) : null);
+    let get;
+    switch (f.type) {
+        case 'text': case 'slug': case 'number': {
+            const inp = el('input', { class: 'input', type: f.type === 'number' ? 'number' : 'text', value: val ?? '', min: f.min, max: f.max });
+            if (f.type === 'slug' && !isNew) { inp.readOnly = true; inp.style.background = '#f4f3f1'; }
+            if (f.type === 'slug' && isNew) {
+                inp.placeholder = 'например: my_new_post';
+                setTimeout(() => {
+                    const src = form.querySelector(`[data-key="${f.from}"]`);
+                    if (src) src.addEventListener('input', () => { if (!inp.dataset.touched) inp.value = slugify(src.value); });
+                    inp.addEventListener('input', () => inp.dataset.touched = '1');
+                });
+            }
+            inp.dataset.key = key;
+            wrap.append(label, inp);
+            get = d => d[key] = f.type === 'number' ? (inp.value === '' ? 0 : Number(inp.value)) : (inp.value.trim() || null);
+            break;
+        }
+        case 'textarea': {
+            const ta = el('textarea', { class: 'input' }); ta.value = val ?? ''; ta.dataset.key = key;
+            wrap.append(label, ta);
+            get = d => d[key] = ta.value.trim() || null;
+            break;
+        }
+        case 'select': {
+            const sel = el('select', { class: 'input' });
+            f.options.forEach(([v, l]) => sel.append(el('option', { value: v, text: l, selected: v === val })));
+            wrap.append(label, sel);
+            get = d => d[key] = sel.value;
+            break;
+        }
+        case 'bool': {
+            const cb = el('input', { type: 'checkbox' }); cb.checked = !!val;
+            wrap.append(el('label', { class: 'check' }, [cb, f.label]));
+            get = d => d[key] = cb.checked;
+            break;
+        }
+        case 'link': {
+            const inp = el('input', { class: 'input', type: 'text', value: val ?? '', list: 'link-options', placeholder: 'Начните вводить или выберите из списка' });
+            wrap.append(label, inp, el('div', { class: 'hint', text: 'Страница сайта (blog.html), пост (posts.html?id=…), глава (reader.html?book=…&chapter=…) или внешний адрес https://…' }));
+            get = d => d[key] = inp.value.trim() || null;
+            break;
+        }
+        case 'image': {
+            const { node, getValue } = imageInput(val);
+            wrap.append(label, node);
+            get = d => d[key] = getValue();
+            break;
+        }
+        case 'rich': {
+            const box = el('div', { class: 'rich' + (f.tall ? ' tall' : '') }, el('div'));
+            wrap.append(label, box);
+            const q = new Quill(box.firstChild, {
+                theme: 'snow',
+                modules: { toolbar: [[{ header: [2, 3, false] }], ['bold', 'italic', 'underline', 'strike'], ['blockquote', 'link'], [{ list: 'ordered' }, { list: 'bullet' }], [{ align: [] }], ['image'], ['clean']] },
+            });
+            q.getModule('toolbar').addHandler('image', async () => {
+                const url = await pickAndUpload(); if (!url) return;
+                const range = q.getSelection(true); q.insertEmbed(range.index, 'image', url, 'user');
+            });
+            if (val) q.clipboard.dangerouslyPasteHTML(val, 'silent');
+            editors.push(q);
+            get = d => { const h = q.root.innerHTML; d[key] = (!q.getText().trim() && !h.includes('<img')) ? null : h; };
+            break;
+        }
+    }
+    if (f.hint && f.type !== 'link') wrap.append(el('div', { class: 'hint', text: f.hint }));
+    form.append(wrap);
+    return get;
+}
+
+/* ---------- КАРТИНКИ ---------- */
+function pickFile() {
+    return new Promise(res => {
+        const inp = el('input', { type: 'file', accept: 'image/*' });
+        inp.onchange = () => res(inp.files[0] || null);
+        inp.click();
+    });
+}
+async function uploadImage(file) {
+    if (file.size > 10 * 1024 * 1024) { toast('Файл больше 10 МБ', 'err'); return null; }
+    const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const path = `${new Date().getFullYear()}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    toast('Загружаю картинку…');
+    const { error } = await sb.storage.from('media').upload(path, file, { contentType: file.type, cacheControl: '31536000' });
+    if (error) { toast(errText(error), 'err'); return null; }
+    toast('Картинка загружена', 'ok');
+    return sb.storage.from('media').getPublicUrl(path).data.publicUrl;
+}
+async function pickAndUpload() { const f = await pickFile(); return f ? uploadImage(f) : null; }
+function imageInput(val) {
+    const preview = el('img', { class: 'preview', alt: '' });
+    const url = el('input', { class: 'input', type: 'text', value: val ?? '', placeholder: 'https://… или загрузите файл' });
+    const upd = () => { preview.src = url.value.trim() || 'data:,'; preview.style.visibility = url.value.trim() ? 'visible' : 'hidden'; };
+    url.addEventListener('input', upd); upd();
+    const btn = el('button', { class: 'btn', type: 'button', onclick: async () => { const u = await pickAndUpload(); if (u) { url.value = u; upd(); } } },
+        [el('i', { class: 'fa-solid fa-upload' }), 'Загрузить с компьютера']);
+    const clear = el('button', { class: 'btn', type: 'button', onclick: () => { url.value = ''; upd(); } }, 'Убрать');
+    const node = el('div', { class: 'img-field' }, [preview, el('div', { class: 'controls' }, [url, el('div', { class: 'inline' }, [btn, clear])])]);
+    return { node, getValue: () => url.value.trim() || null };
+}
+
+/* ---------- ГЛАВЫ ВНУТРИ КНИГИ ---------- */
+async function renderChaptersBlock(main, book) {
+    const box = el('div', { class: 'form', style: 'margin-top:22px' });
+    main.append(box);
+    box.append(el('div', { class: 'loading', text: 'Загрузка глав…' }));
+    const { data, error } = await sb.from('chapters').select('id,book_id,chapter_num,title_ru,title_en,hidden').eq('book_id', book.id).order('chapter_num');
+    box.innerHTML = '';
+    if (error) { toast(errText(error), 'err'); return; }
+    const backToBook = () => openForm('books', book, null);
+    const nextNum = data.length ? Math.max(...data.map(c => c.chapter_num)) + 1 : 1;
+    const openChapter = async (c) => {
+        let full = null;
+        if (c) {
+            $('#main').innerHTML = '<div class="loading">Загрузка главы…</div>';
+            const r = await sb.from('chapters').select('*').eq('id', c.id).single();
+            if (r.error) { toast(errText(r.error), 'err'); return backToBook(); }
+            full = r.data;
+        }
+        SECTIONS.chapters.rowTitle = r => r.title_ru || `Глава ${r.chapter_num}`;
+        SECTIONS.chapters.addLabel = `Новая глава — ${book.title_ru}`;
+        SECTIONS.chapters.newRow = () => ({ chapter_num: nextNum, hidden: false });
+        SECTIONS.chapters.viewUrl = r => `reader.html?book=${book.id}&chapter=${r.chapter_num}`;
+        openForm('chapters', full, null, { back: backToBook, backLabel: `Назад к книге «${book.title_ru}»`, defaults: { book_id: book.id } });
+    };
+    box.append(el('div', { class: 'page-head', style: 'margin-bottom:14px' }, [
+        el('h3', { text: `Главы (${data.length})` }),
+        el('button', { class: 'btn btn-primary', type: 'button', onclick: () => openChapter(null) }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить главу'])]));
+    const list = el('div', { class: 'list' });
+    if (!data.length) list.append(el('div', { class: 'empty', text: 'Глав пока нет' }));
+    data.forEach(c => list.append(el('div', { class: 'row' }, [
+        el('div', { class: 'info', onclick: () => openChapter(c) }, [
+            el('div', { class: 'title' }, [document.createTextNode(c.title_ru || `Глава ${c.chapter_num}`), c.hidden ? el('span', { class: 'badge hidden-b', text: 'скрыто' }) : null]),
+            el('div', { class: 'meta', text: `№ ${c.chapter_num} · reader.html?book=${book.id}&chapter=${c.chapter_num}` })]),
+        el('div', { class: 'actions' }, el('button', { class: 'btn btn-icon', type: 'button', onclick: () => openChapter(c) }, el('i', { class: 'fa-solid fa-pen' })))])));
+    box.append(list);
+}
+
+/* ---------- НАСТРОЙКИ ---------- */
+async function renderSettings() {
+    const main = $('#main');
+    main.innerHTML = '<div class="loading">Загрузка…</div>';
+    if (!linkSuggestions.length) loadLinkSuggestions();
+    const { data, error } = await sb.from('settings').select('*').eq('key', 'site').maybeSingle();
+    if (error) { toast(errText(error), 'err'); return; }
+    if (state.section !== 'settings') return;
+    const site = structuredClone(data?.value || {});
+    site.socials = site.socials || []; site.home_cards = site.home_cards || []; site.contact = site.contact || { enabled: true };
+    main.innerHTML = '';
+    main.append(el('div', { class: 'page-head' }, [el('div', {}, [el('h2', { text: 'Настройки' }), el('div', { class: 'sub', text: 'Соцсети в подвале, карточки-кнопки на главной и блок «Написать автору»' })])]));
+    const form = el('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } });
+    main.append(form);
+
+    // Соцсети
+    form.append(el('h3', { class: 'section-title', style: 'margin-top:0;padding-top:0;border:none' }, [el('span', { text: 'Соцсети в подвале сайта' })]));
+    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Показываются только те, у которых заполнена ссылка.' }));
+    const socialsBox = el('div'); form.append(socialsBox);
+    const drawSocials = () => {
+        socialsBox.innerHTML = '';
+        site.socials.forEach((s, i) => {
+            const iconPrev = el('span', { class: 'icon-preview', html: `<i class="${esc(s.icon)}"></i>` });
+            const sel = el('select', { class: 'input', style: 'max-width:200px' });
+            const known = SOCIAL_PRESETS.find(p => p.icon === s.icon);
+            SOCIAL_PRESETS.forEach(p => sel.append(el('option', { value: p.icon, text: p.name, selected: p.icon === s.icon })));
+            if (!known) sel.append(el('option', { value: s.icon, text: s.name || 'Другое', selected: true }));
+            sel.onchange = () => { s.icon = sel.value; s.name = SOCIAL_PRESETS.find(p => p.icon === sel.value)?.name || s.name; iconPrev.innerHTML = `<i class="${esc(s.icon)}"></i>`; };
+            const url = el('input', { class: 'input', placeholder: 'https://…', value: s.url || '' }); url.oninput = () => s.url = url.value.trim();
+            socialsBox.append(el('div', { class: 'inline', style: 'margin-bottom:10px' }, [iconPrev, sel, url,
+                el('button', { class: 'btn btn-icon', type: 'button', title: 'Выше', disabled: i === 0, onclick: () => { [site.socials[i - 1], site.socials[i]] = [site.socials[i], site.socials[i - 1]]; drawSocials(); } }, el('i', { class: 'fa-solid fa-arrow-up' })),
+                el('button', { class: 'btn btn-icon btn-danger', type: 'button', title: 'Удалить', onclick: () => { site.socials.splice(i, 1); drawSocials(); } }, el('i', { class: 'fa-solid fa-xmark' }))]));
+        });
+    };
+    drawSocials();
+    form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.socials.push({ ...SOCIAL_PRESETS[0], url: '' }); drawSocials(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить соцсеть']));
+
+    // Карточки на главной
+    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Карточки-кнопки на главной' })]));
+    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Плитки под шапкой главной страницы. Каждая ведёт туда, куда вы укажете.' }));
+    const cardsBox = el('div'); form.append(cardsBox);
+    const textIn = (obj, k, ph) => { const i = el('input', { class: 'input', placeholder: ph || '', value: obj[k] || '' }); i.oninput = () => obj[k] = i.value; return i; };
+    const drawCards = () => {
+        cardsBox.innerHTML = '';
+        site.home_cards.forEach((c, i) => {
+            const iconPrev = el('span', { class: 'icon-preview', html: `<i class="${esc(c.icon)}"></i>` });
+            const sel = el('select', { class: 'input', style: 'max-width:240px' });
+            ICONS.forEach(ic => sel.append(el('option', { value: ic, text: ic.replace(/fa-(solid|regular|brands) fa-/, ''), selected: ic === c.icon })));
+            if (!ICONS.includes(c.icon)) sel.append(el('option', { value: c.icon, text: c.icon, selected: true }));
+            sel.onchange = () => { c.icon = sel.value; iconPrev.innerHTML = `<i class="${esc(c.icon)}"></i>`; };
+            const link = el('input', { class: 'input', list: 'link-options', value: c.link || '', placeholder: 'blog.html' }); link.oninput = () => c.link = link.value.trim();
+            const hid = el('input', { type: 'checkbox' }); hid.checked = !!c.hidden; hid.onchange = () => c.hidden = hid.checked;
+            cardsBox.append(el('div', { class: 'repeater-item' }, [
+                el('div', { class: 'repeater-head' }, [el('span', { text: `Карточка ${i + 1}` }), el('div', { class: 'inline' }, [
+                    el('button', { class: 'btn btn-icon', type: 'button', disabled: i === 0, onclick: () => { [site.home_cards[i - 1], site.home_cards[i]] = [site.home_cards[i], site.home_cards[i - 1]]; drawCards(); } }, el('i', { class: 'fa-solid fa-arrow-up' })),
+                    el('button', { class: 'btn btn-icon', type: 'button', disabled: i === site.home_cards.length - 1, onclick: () => { [site.home_cards[i + 1], site.home_cards[i]] = [site.home_cards[i], site.home_cards[i + 1]]; drawCards(); } }, el('i', { class: 'fa-solid fa-arrow-down' })),
+                    el('button', { class: 'btn btn-icon btn-danger', type: 'button', onclick: () => { if (confirm('Удалить карточку?')) { site.home_cards.splice(i, 1); drawCards(); } } }, el('i', { class: 'fa-solid fa-trash' }))])]),
+                el('div', { class: 'grid-2' }, [
+                    el('div', { class: 'field' }, [el('label', { text: 'Заголовок RU' }), textIn(c, 'title_ru')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Заголовок EN' }), textIn(c, 'title_en')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Подпись RU' }), textIn(c, 'desc_ru')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Подпись EN' }), textIn(c, 'desc_en')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Куда ведёт' }), link]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Иконка' }), el('div', { class: 'inline' }, [iconPrev, sel])])]),
+                el('label', { class: 'check' }, [hid, 'Скрыть карточку'])]));
+        });
+    };
+    drawCards();
+    form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.home_cards.push({ icon: ICONS[0], title_ru: '', title_en: '', desc_ru: '', desc_en: '', link: '' }); drawCards(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить карточку']));
+
+    // Контакты
+    const ct = site.contact;
+    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Блок «Написать автору» на главной' })]));
+    const en = el('input', { type: 'checkbox' }); en.checked = ct.enabled !== false; en.onchange = () => ct.enabled = en.checked;
+    form.append(el('div', { class: 'field' }, el('label', { class: 'check' }, [en, 'Показывать форму обратной связи'])));
+    const ta = (k) => { const t = el('textarea', { class: 'input' }); t.value = ct[k] || ''; t.oninput = () => ct[k] = t.value; return t; };
+    form.append(el('div', { class: 'grid-2' }, [
+        el('div', { class: 'field' }, [el('label', { text: 'Заголовок RU' }), textIn(ct, 'title_ru')]),
+        el('div', { class: 'field' }, [el('label', { text: 'Заголовок EN' }), textIn(ct, 'title_en')]),
+        el('div', { class: 'field' }, [el('label', { text: 'Текст RU' }), ta('desc_ru')]),
+        el('div', { class: 'field' }, [el('label', { text: 'Текст EN' }), ta('desc_en')])]));
+    form.append(el('div', { class: 'hint', html: 'Сообщения из формы приходят в Netlify: проект ericnorth → <b>Forms</b>. Там же можно включить уведомления на почту.' }));
+
+    form.append(el('div', { class: 'form-bottom' }, el('div', { class: 'left' }, el('button', { class: 'btn btn-primary', type: 'submit' }, [el('i', { class: 'fa-solid fa-floppy-disk' }), 'Сохранить настройки']))));
+
+    async function save() {
+        const btn = form.querySelector('[type=submit]'); btn.disabled = true;
+        const { error } = await sb.from('settings').upsert({ key: 'site', value: site, updated_at: new Date().toISOString() });
+        btn.disabled = false;
+        if (error) toast(errText(error), 'err'); else toast('Настройки сохранены', 'ok');
+    }
+}
+
+boot();
+</script>
+</body>
+</html>
