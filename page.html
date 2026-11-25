@@ -379,6 +379,10 @@
                 if (e.data.type === 'page-preview') {
                     if (e.data.lang && e.data.lang !== currentLang) { currentLang = e.data.lang; }
                     showPage(e.data.content);
+                    if (e.data.selected != null) {
+                        const sel = document.querySelector(`[data-block-index="${e.data.selected}"]`);
+                        if (sel) sel.classList.add('blk-selected');
+                    }
                     if (e.data.scrollTo != null) {
                         const el = document.querySelector(`[data-block-index="${e.data.scrollTo}"]`);
                         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
