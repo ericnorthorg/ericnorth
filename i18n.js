@@ -113,6 +113,34 @@ function switchLanguage(lang) {
     if (typeof window.setLanguage === 'function') window.setLanguage(lang);
 }
 
+// На страницах с языком в адресе (/ru/...) внутренние ссылки получают тот же префикс.
+// Netlify переписывает ссылки вида "blog.html" в "/blog", из-за чего префикс терялся.
+const NO_PREFIX = /^\/(admin|editor|guide|gemini[^/]*)(\.html)?$/;
+function localizeHref(a, lang) {
+    const raw = a.getAttribute('href');
+    if (!raw || raw.startsWith('#') || /^(mailto:|tel:|javascript:)/i.test(raw)) return;
+    let url;
+    try { url = new URL(raw, window.location.href); } catch (e) { return; }
+    if (url.origin !== window.location.origin) return;
+    if (/^\/(en|ru|uk)(\/|$)/.test(url.pathname)) return;
+    if (NO_PREFIX.test(url.pathname)) return;
+    if (/\.[a-z0-9]+$/i.test(url.pathname) && !/\.html$/i.test(url.pathname)) return;
+    a.setAttribute('href', '/' + lang + (url.pathname === '/' ? '/' : url.pathname) + url.search + url.hash);
+}
+function localizeLinks(root) {
+    const lang = langFromPath();
+    if (!lang) return;
+    (root || document).querySelectorAll('a[href]').forEach(a => localizeHref(a, lang));
+}
+document.addEventListener('DOMContentLoaded', () => localizeLinks());
+document.addEventListener('db-ready', () => setTimeout(() => localizeLinks(), 0));
+// Ссылки, появившиеся позже (поиск и т.п.), исправляются в момент клика
+document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    const lang = langFromPath();
+    if (a && lang) localizeHref(a, lang);
+}, true);
+
 document.addEventListener('click', e => {
     const btn = e.target.closest && e.target.closest('.lang-opt');
     if (!btn) return;
