@@ -481,8 +481,6 @@ async function openForm(section, row, all, ctx = {}) {
         if (f.i18n) ['ru', 'en'].forEach(l => getters.push(renderField(form, f, row, l, isNew)));
         else getters.push(renderField(form, f, row, null, isNew));
     });
-    setEditLang(state.editLang);
-
     const bottom = el('div', { class: 'form-bottom' });
     const left = el('div', { class: 'left' }, [el('button', { class: 'btn btn-primary', type: 'submit' }, [el('i', { class: 'fa-solid fa-floppy-disk' }), 'Сохранить'])]);
     if (!isNew && s.viewUrl) left.append(el('a', { class: 'btn', href: s.viewUrl(row), target: '_blank' }, [el('i', { class: 'fa-solid fa-eye' }), 'На сайте']));
@@ -490,6 +488,7 @@ async function openForm(section, row, all, ctx = {}) {
     if (!isNew && (!s.canDelete || s.canDelete(row))) bottom.append(el('button', { class: 'btn btn-danger', type: 'button', onclick: remove }, [el('i', { class: 'fa-solid fa-trash' }), 'Удалить']));
     form.append(bottom);
     main.append(form);
+    setEditLang(state.editLang);
     if (!isNew && s.afterForm) s.afterForm(main, row);
 
     async function save() {
