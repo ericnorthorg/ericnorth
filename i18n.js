@@ -5,9 +5,8 @@
 
 const SITE_LANGS = ['en', 'ru', 'uk'];
 const DEFAULT_LANG = 'en';
-// Языки, которые показываются в переключателе. Украинский включится,
-// когда для него будут готовы все тексты интерфейса и контента.
-const VISIBLE_LANGS = ['en', 'ru'];
+// Языки, которые показываются в переключателе
+const VISIBLE_LANGS = ['en', 'ru', 'uk'];
 
 function langFromPath() {
     const m = window.location.pathname.match(/^\/(en|ru|uk)(\/|$)/);
