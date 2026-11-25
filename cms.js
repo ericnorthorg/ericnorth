@@ -201,7 +201,7 @@ function applySettings() {
         });
     }
 
-    const cardsBox = document.querySelector('.featured-cards-container');
+    const cardsBox = document.querySelector('.featured-cards-container:not(.blk-cards-grid)');
     if (cardsBox && Array.isArray(site.home_cards)) {
         cardsBox.innerHTML = site.home_cards.filter(c => c && !c.hidden).map(c => `
             <a href="${esc(c.link || '#')}" class="link-card">

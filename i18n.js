@@ -119,7 +119,7 @@ function localizeHref(a, lang) {
     const raw = a.getAttribute('href');
     if (!raw || raw.startsWith('#') || /^(mailto:|tel:|javascript:)/i.test(raw)) return;
     let url;
-    try { url = new URL(raw, window.location.href); } catch (e) { return; }
+    try { url = new URL(raw, document.baseURI || window.location.href); } catch (e) { return; }
     if (url.origin !== window.location.origin) return;
     if (/^\/(en|ru|uk)(\/|$)/.test(url.pathname)) return;
     if (NO_PREFIX.test(url.pathname)) return;
