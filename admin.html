@@ -726,7 +726,7 @@ async function renderSettings() {
     const THEME_DEFAULTS = { light: { accent: '#ff500a', bg: '#ffffff', text: '#222222', card: '#f9f9f9' }, dark: { accent: '#ff6b35', bg: '#121212', text: '#e0e0e0', card: '#1e1e1e' } };
     const THEME_LABELS = { accent: 'Акцент (кнопки, ссылки)', bg: 'Фон страницы', text: 'Текст', card: 'Фон карточек' };
     form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Цвета сайта' })]));
-    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Отдельно для светлой и тёмной темы. Справа — как это будет выглядеть.' }));
+    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Отдельно для светлой и тёмной темы. Под цветами — пример, как это будет выглядеть. Изменения появятся на сайте после «Сохранить настройки».' }));
     const themeBox = el('div', { class: 'grid-2' }); form.append(themeBox);
     const drawTheme = () => {
         themeBox.innerHTML = '';
