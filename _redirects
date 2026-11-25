@@ -4,9 +4,9 @@
 /en         /en/         301
 /ru         /ru/         301
 /uk         /uk/         301
-/en/        /index.html  200
-/ru/        /index.html  200
-/uk/        /index.html  200
+/en/        /            200
+/ru/        /            200
+/uk/        /            200
 /en/*       /:splat      200
 /ru/*       /:splat      200
 /uk/*       /:splat      200
