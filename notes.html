@@ -273,10 +273,7 @@
         </div>
     </footer>
 
-    <script src="posts.js"></script>
-    <script src="books.js"></script>
-    <script src="projects.js"></script>
-    <script src="notes.js"></script>
+    <script src="db.js"></script>
     
     <script src="search.js"></script>
 
@@ -324,7 +321,7 @@
             setLanguage(currentLang === 'ru' ? 'en' : 'ru');
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => siteDataReady.then(() => {
             const icon = document.getElementById('theme-icon');
             const currentTheme = document.documentElement.getAttribute('data-theme');
             if(icon) icon.className = currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
@@ -378,7 +375,7 @@
                 });
                 setLanguage(localStorage.getItem('lang') || 'ru');
             }
-        });
+        }));
 
         function toggleTheme() {
             const html = document.documentElement;

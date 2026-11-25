@@ -30,7 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Логика поиска
     searchInput.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') {
-            performSearch(searchInput.value.toLowerCase());
+            const query = searchInput.value.toLowerCase();
+            siteDataReady.then(() => performSearch(query));
         }
     });
 
