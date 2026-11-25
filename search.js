@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let results = [];
         
         // Определяем текущий язык сайта
-        const lang = window.currentLang || localStorage.getItem('lang') || 'ru'; 
+        const lang = (typeof currentLang !== 'undefined' && currentLang) ? currentLang : (typeof detectLang === 'function' ? detectLang() : 'en'); 
 
         // Функция-предохранитель: переводит текст в строку и нижний регистр, защищает от пустых ячеек
         const getSafeStr = (str) => (str ? String(str).toLowerCase() : '');

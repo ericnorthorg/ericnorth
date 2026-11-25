@@ -42,8 +42,8 @@ function showSpinner() {
     }
     const spinner = document.createElement('div');
     spinner.id = 'cms-global-spinner';
-    const lang = localStorage.getItem('lang') || 'ru';
-    spinner.innerHTML = `<div class="spinner-circle"></div><div class="spinner-text">${lang === 'ru' ? 'Открываем портал...' : 'Opening the portal...'}</div>`;
+    const lang = (typeof detectLang === 'function') ? detectLang() : 'en';
+    spinner.innerHTML = `<div class="spinner-circle"></div><div class="spinner-text">${lang === 'ru' ? 'Открываем портал...' : lang === 'uk' ? 'Відкриваємо портал...' : 'Opening the portal...'}</div>`;
     document.body.appendChild(spinner);
 }
 
@@ -128,7 +128,7 @@ function esc(s) {
 
 // Описание картинки (alt) из заголовка на текущем языке
 function altText(ru, en) {
-    const lang = (typeof currentLang !== 'undefined' ? currentLang : localStorage.getItem('lang')) || 'ru';
+    const lang = (typeof currentLang !== 'undefined' ? currentLang : (typeof detectLang === 'function' ? detectLang() : 'en'));
     const t = (lang === 'en' ? (en || ru) : (ru || en)) || '';
     return esc(String(t).replace(/<[^>]*>/g, ''));
 }

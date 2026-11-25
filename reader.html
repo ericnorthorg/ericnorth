@@ -130,20 +130,21 @@
         </article>
     </main>
 
+    <script src="i18n.js"></script>
     <script src="cms.js"></script>
 
     <script>
-        const translations = {
+        const translations = withUk({
             ru: { back_to_books: "К списку", loading: "Загрузка...", not_found: "Глава не найдена", prev_chapter: "Предыдущая", next_chapter: "Следующая", font_size: "Размер текста", font_family: "Шрифт", settings_title: "Настройки текста" },
             en: { back_to_books: "Back", loading: "Loading...", not_found: "Chapter not found", prev_chapter: "Previous", next_chapter: "Next", font_size: "Font Size", font_family: "Font Family", settings_title: "Text Settings" }
-        };
+        }, { not_found: 'Розділ не знайдено', loading: 'Завантаження...' });
 
-        window.currentLang = localStorage.getItem('lang') || 'ru';
+        window.currentLang = detectLang();
 
         window.setLanguage = function(lang) {
             window.currentLang = lang;
             localStorage.setItem('lang', lang); 
-            document.querySelector('.lang-switch').textContent = lang === 'ru' ? 'EN' : 'RU';
+            renderLangSwitch(lang);
             
             // Перевод текстовых блоков
             document.querySelectorAll('[data-translate]').forEach(el => {
@@ -157,8 +158,7 @@
                 if (translations[lang] && translations[lang][key]) el.title = translations[lang][key];
             });
             
-            document.querySelectorAll('.lang-ru').forEach(el => el.hidden = (lang !== 'ru'));
-            document.querySelectorAll('.lang-en').forEach(el => el.hidden = (lang !== 'en'));
+            toggleLangBlocks(lang);
         };
 
         window.toggleLanguage = function() { window.setLanguage(window.currentLang === 'ru' ? 'en' : 'ru'); };

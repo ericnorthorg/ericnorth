@@ -152,7 +152,7 @@
                 <a href="blog.html" data-translate="blog">Блог</a>
                 <a href="books.html" data-translate="books">Книги</a>
                 <a href="notes.html" data-translate="notes">Заметки</a>
-                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span></a>
+                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span><span class="lang-uk" hidden>Проєкти</span></a>
             </nav>
             <div class="actions">
                 <button class="icon-btn" onclick="toggleSearch()" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
@@ -249,7 +249,7 @@
                 <a href="blog.html" data-translate="blog">Блог</a>
                 <a href="books.html" data-translate="books">Книги</a>
                 <a href="notes.html" data-translate="notes">Заметки</a>
-                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span></a>
+                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span><span class="lang-uk" hidden>Проєкти</span></a>
             </nav>
             <div class="footer-socials">
                 <a href="#" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
@@ -264,11 +264,12 @@
         </div>
     </footer>
 
+    <script src="i18n.js"></script>
     <script src="cms.js"></script>
     <script src="search.js"></script>
 
     <script>
-        const translations = {
+        const translations = withUk({
             ru: { 
                 home: "Главная", blog: "Блог", books: "Книги", notes: "Заметки", subscribe: "Подписаться", search_placeholder: "Введите название книги или темы...", search_hint: "Нажмите Enter для поиска", rights: "Все права защищены.", join_news: "Новости и обновления", subscribe_btn: "Подписаться", spam_note: "Никакого спама, только магия.", blog_card: "Истории", stories_desc: "Короткая проза и черновики", books_desc: "Мои опубликованные романы", notes_desc: "Мысли и объявления", projects: "Проекты", projects_desc: "Эксперименты и идеи",
                 contact_title: "Написать автору",
@@ -297,14 +298,14 @@
                 subj_3: "Universe Questions",
                 subj_4: "Other"
             }
-        };
+        });
         
-        let currentLang = localStorage.getItem('lang') || 'ru';
+        let currentLang = detectLang();
         
         function setLanguage(lang) {
             currentLang = lang;
             localStorage.setItem('lang', lang); 
-            document.querySelector('.lang-switch').textContent = lang === 'ru' ? 'EN' : 'RU';
+            renderLangSwitch(lang);
             
             document.querySelectorAll('[data-translate]').forEach(el => {
                 const key = el.getAttribute('data-translate');
@@ -330,8 +331,7 @@
                 if (el && translations[lang][key]) el.textContent = translations[lang][key];
             });
             
-            document.querySelectorAll('.lang-ru').forEach(el => el.hidden = (lang !== 'ru'));
-            document.querySelectorAll('.lang-en').forEach(el => el.hidden = (lang !== 'en'));
+            toggleLangBlocks(lang);
         }
         
         function toggleLanguage() { setLanguage(currentLang === 'ru' ? 'en' : 'ru'); }

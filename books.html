@@ -133,7 +133,7 @@
                 <a href="blog.html" data-translate="blog">Блог</a>
                 <a href="books.html" class="active" data-translate="books">Книги</a>
                 <a href="notes.html" data-translate="notes">Заметки</a>
-                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span></a>
+                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span><span class="lang-uk" hidden>Проєкти</span></a>
             </nav>
             <div class="actions">
                 <button class="icon-btn" onclick="toggleSearch()" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
@@ -173,7 +173,7 @@
                 <a href="blog.html" data-translate="blog">Блог</a>
                 <a href="books.html" data-translate="books">Книги</a>
                 <a href="notes.html" data-translate="notes">Заметки</a>
-                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span></a>
+                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span><span class="lang-uk" hidden>Проєкти</span></a>
             </nav>
             <div class="footer-socials">
                 <a href="#" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
@@ -188,11 +188,12 @@
         </div>
     </footer>
 
+    <script src="i18n.js"></script>
     <script src="cms.js"></script>
     <script src="search.js"></script>
 
     <script>
-        const translations = {
+        const translations = withUk({
             ru: { 
                 home: "Главная", blog: "Блог", books: "Книги", notes: "Заметки", projects: "Проекты", 
                 subscribe: "Подписаться", search_placeholder: "Введите название книги или темы...", search_hint: "Нажмите Enter для поиска", 
@@ -213,16 +214,16 @@
                 read_btn: "Start Reading",
                 continue_btn: "Continue Reading"
             }
-        };
+        });
 
-        let currentLang = localStorage.getItem('lang') || 'ru';
+        let currentLang = detectLang();
 
         function setLanguage(lang) {
             currentLang = lang;
             localStorage.setItem('lang', lang); 
             
             const langSwitch = document.querySelector('.lang-switch');
-            if (langSwitch) langSwitch.textContent = lang === 'ru' ? 'EN' : 'RU';
+            renderLangSwitch(lang);
             
             document.querySelectorAll('[data-translate]').forEach(el => {
                 const key = el.getAttribute('data-translate');
@@ -234,8 +235,7 @@
                 searchInput.placeholder = translations[lang]['search_placeholder']; 
             }
             
-            document.querySelectorAll('.lang-ru').forEach(el => el.hidden = (lang !== 'ru'));
-            document.querySelectorAll('.lang-en').forEach(el => el.hidden = (lang !== 'en'));
+            toggleLangBlocks(lang);
         }
 
         function toggleLanguage() { setLanguage(currentLang === 'ru' ? 'en' : 'ru'); }
