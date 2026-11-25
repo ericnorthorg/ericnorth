@@ -19,8 +19,31 @@ function detectLang() {
     if (fromPath) return fromPath;
     let saved = null;
     try { saved = localStorage.getItem('lang'); } catch (e) {}
-    return VISIBLE_LANGS.includes(saved) ? saved : DEFAULT_LANG;
+    if (VISIBLE_LANGS.includes(saved)) return saved;
+    // Первый визит без языка в адресе: язык браузера, если он есть на сайте
+    const browser = (navigator.languages || [navigator.language || ''])
+        .map(l => String(l).slice(0, 2).toLowerCase())
+        .find(l => VISIBLE_LANGS.includes(l));
+    return browser || DEFAULT_LANG;
 }
+
+// Адрес текущей страницы без языкового префикса: /ru/blog.html -> /blog.html
+function pathWithoutLang() {
+    return window.location.pathname.replace(/^\/(en|ru|uk)(?=\/|$)/, '') || '/';
+}
+
+// Ссылки на эту же страницу на других языках — для поисковиков
+(function addAlternateLinks() {
+    const rest = pathWithoutLang() + window.location.search;
+    const href = l => window.location.origin + '/' + l + (rest.startsWith('/') ? rest : '/' + rest);
+    const add = (hreflang, url) => {
+        const link = document.createElement('link');
+        link.rel = 'alternate'; link.hreflang = hreflang; link.href = url;
+        document.head.appendChild(link);
+    };
+    VISIBLE_LANGS.forEach(l => add(l, href(l)));
+    add('x-default', href(DEFAULT_LANG));
+})();
 
 // Украинские надписи интерфейса. Чего здесь нет — показывается по-английски.
 const UK_DICT = {
