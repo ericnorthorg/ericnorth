@@ -41,6 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         performSearch(query);
+
+        // Тексты глав грузятся только при первом поиске — потом повторяем поиск с ними
+        if (typeof loadChapterTexts === 'function' && !chapterTextsLoaded) {
+            loadChapterTexts().then(() => {
+                if (searchInput.value.toLowerCase().trim() === query) performSearch(query);
+            });
+        }
     });
 
     function performSearch(query) {

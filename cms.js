@@ -126,6 +126,13 @@ function esc(s) {
     return str(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Описание картинки (alt) из заголовка на текущем языке
+function altText(ru, en) {
+    const lang = (typeof currentLang !== 'undefined' ? currentLang : localStorage.getItem('lang')) || 'ru';
+    const t = (lang === 'en' ? (en || ru) : (ru || en)) || '';
+    return esc(String(t).replace(/<[^>]*>/g, ''));
+}
+
 function applySettings() {
     const site = siteSettings.site || {};
 
@@ -166,7 +173,48 @@ function applySettings() {
     if (typeof setLanguage === 'function' && typeof currentLang !== 'undefined') setLanguage(currentLang);
 }
 
-// 4. ГЛАВНАЯ ЛОГИКА
+// 4. ГЛАВЫ: полный текст грузим только там, где он нужен
+// На обычных страницах — только номера и названия глав (для «Продолжить чтение»),
+// в читалке — плюс текст открытой главы, в поиске — все тексты по первому запросу.
+const CHAPTER_META = 'book_id,chapter_num,title_ru,title_en';
+let chapterTextsLoaded = false;
+
+async function fetchChapters() {
+    const base = `select=${CHAPTER_META}&hidden=eq.false&order=book_id.asc,chapter_num.asc`;
+    const params = new URLSearchParams(window.location.search);
+    const book = params.get('book'), chapter = parseInt(params.get('chapter'), 10);
+    const isReader = /\/reader(\.html)?$/.test(window.location.pathname) && book && chapter;
+    const [meta, current] = await Promise.all([
+        fetchTable('chapters', base),
+        isReader
+            ? fetchTable('chapters', `select=book_id,chapter_num,text_ru,text_en&hidden=eq.false&book_id=eq.${encodeURIComponent(book)}&chapter_num=eq.${chapter}`)
+            : Promise.resolve([])
+    ]);
+    return meta.map(c => {
+        const full = current.find(x => x.book_id === c.book_id && x.chapter_num === c.chapter_num);
+        return full ? { ...c, text_ru: full.text_ru, text_en: full.text_en } : c;
+    });
+}
+
+// Догружает тексты всех глав (для поиска). Возвращает Promise.
+let chapterTextsPromise = null;
+function loadChapterTexts() {
+    if (chapterTextsLoaded) return Promise.resolve();
+    if (!chapterTextsPromise) {
+        chapterTextsPromise = fetchTable('chapters', 'select=book_id,chapter_num,text_ru,text_en&hidden=eq.false')
+            .then(rows => {
+                rows.forEach(r => {
+                    const ch = chaptersDB.find(c => c.book_id === r.book_id && String(c.chapter_num) === String(r.chapter_num));
+                    if (ch) { ch.text_ru = str(r.text_ru); ch.text_en = str(r.text_en) || str(r.text_ru); }
+                });
+                chapterTextsLoaded = true;
+            })
+            .catch(err => { chapterTextsPromise = null; console.error('Не удалось загрузить тексты глав:', err); });
+    }
+    return chapterTextsPromise;
+}
+
+// 5. ГЛАВНАЯ ЛОГИКА
 async function initCMS() {
     const spinnerTimer = setTimeout(showSpinner, 400);
     try {
@@ -174,7 +222,7 @@ async function initCMS() {
             fetchTable('home_blocks', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
             fetchTable('posts', 'select=*&order=sort_order.asc,id.asc'),
             fetchTable('books', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
-            fetchTable('chapters', 'select=book_id,chapter_num,title_ru,title_en,text_ru,text_en&hidden=eq.false&order=book_id.asc,chapter_num.asc'),
+            fetchChapters(),
             fetchTable('projects', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
             fetchTable('notes', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
             fetchTable('settings', 'select=key,value')

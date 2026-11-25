@@ -89,6 +89,7 @@
         .footer-socials a:hover { color: var(--accent-color); }
         .copyright { width: 100%; background-color: var(--accent-color); padding: 20px 0; text-align: center; margin-top: 0; }
         .copyright p { margin: 0; font-size: 0.85rem; color: #ffffff; }
+        @media (max-width: 768px) { .main-menu { flex-wrap: wrap; justify-content: center; gap: 10px 22px; } }
     </style>
 
     <script>
@@ -132,6 +133,7 @@
                 <a href="blog.html" data-translate="blog">Блог</a>
                 <a href="books.html" class="active" data-translate="books">Книги</a>
                 <a href="notes.html" data-translate="notes">Заметки</a>
+                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span></a>
             </nav>
             <div class="actions">
                 <button class="icon-btn" onclick="toggleSearch()" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
@@ -171,6 +173,7 @@
                 <a href="blog.html" data-translate="blog">Блог</a>
                 <a href="books.html" data-translate="books">Книги</a>
                 <a href="notes.html" data-translate="notes">Заметки</a>
+                <a href="projects.html"><span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span></a>
             </nav>
             <div class="footer-socials">
                 <a href="#" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
@@ -309,7 +312,7 @@
                     const bookCard = `
                         <div class="book-showcase">
                             <div class="book-cover-wrapper">
-                                <img src="${book.cover || fallbackImage}" alt="Cover" class="book-cover" loading="lazy">
+                                <img src="${book.cover || fallbackImage}" alt="${altText(book.title_ru, book.title_en)}" class="book-cover" loading="lazy">
                             </div>
                             <div class="book-info">
                                 <div class="book-tags">
