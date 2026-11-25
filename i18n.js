@@ -166,6 +166,10 @@ document.addEventListener('click', e => {
         .lang-opt:hover { color: var(--text-color, #222); }
         .lang-opt.active { color: var(--accent-color, #ff500a); }
         .lang-opt:focus-visible { outline: 2px solid var(--accent-color, #ff500a); outline-offset: 1px; }
+        @media (max-width: 420px) {
+            .actions { flex-wrap: wrap; justify-content: center; row-gap: 8px; column-gap: 12px; }
+            .lang-opt { padding: 4px 3px; }
+        }
     `;
     document.head.appendChild(style);
 })();
