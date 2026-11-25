@@ -149,6 +149,14 @@ document.addEventListener('click', e => {
     switchLanguage(btn.dataset.lang);
 }, true);
 
+// Цвета сайта из прошлого визита — сразу, чтобы не мигали стандартные (свежие придут из базы)
+(function applyCachedTheme() {
+    try {
+        const css = localStorage.getItem('siteThemeCss');
+        if (css) { const el = document.createElement('style'); el.id = 'site-theme'; el.textContent = css; document.head.appendChild(el); }
+    } catch (e) {}
+})();
+
 (function injectLangSwitchStyle() {
     const style = document.createElement('style');
     style.textContent = `

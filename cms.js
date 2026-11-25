@@ -122,7 +122,55 @@ function applyData(t) {
     t.settings.forEach(s => siteSettings[s.key] = s.value);
 }
 
-// 3. НАСТРОЙКИ САЙТА: соцсети, карточки на главной, блок «Написать автору»
+// 3. НАСТРОЙКИ САЙТА: меню, цвета, соцсети, карточки на главной, блок «Написать автору»
+
+// Ключ страницы для подсветки пункта меню: "/ru/blog" и "blog.html" -> "blog", "/" -> "index"
+function pageKey(href) {
+    try {
+        const u = new URL(href, window.location.origin + '/');
+        if (u.origin !== window.location.origin) return null;
+        const p = u.pathname.split('/').pop().replace(/\.html$/, '');
+        return (p === '' || p === 'en' || p === 'ru' || p === 'uk') ? 'index' : p;
+    } catch (e) { return null; }
+}
+
+function renderMenu(menu) {
+    const cur = pageKey(window.location.pathname);
+    const html = menu.filter(m => m && !m.hidden && m.link).map(m => {
+        const k = pageKey(m.link);
+        const active = k && (k === cur || (cur === 'posts' && k === 'blog'));
+        return `<a href="${esc(m.link)}"${active ? ' class="active"' : ''}>` +
+            `<span class="lang-ru">${esc(m.label_ru)}</span>` +
+            `<span class="lang-en" hidden>${esc(m.label_en || m.label_ru)}</span>` +
+            `<span class="lang-uk" hidden>${esc(m.label_uk || m.label_en || m.label_ru)}</span></a>`;
+    }).join('');
+    document.querySelectorAll('nav.main-menu').forEach(nav => { nav.innerHTML = html; });
+}
+
+// Цвета темы: в настройках хранятся только изменённые значения
+const THEME_VARS = { accent: '--accent-color', bg: '--bg-color', text: '--text-color', card: '--card-bg' };
+function shadeHex(hex, amount) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return hex;
+    const n = parseInt(m[1], 16), t = amount < 0 ? 0 : 255, a = Math.abs(amount);
+    const ch = s => Math.round(((n >> s) & 255) + (t - ((n >> s) & 255)) * a);
+    return '#' + [16, 8, 0].map(s => ch(s).toString(16).padStart(2, '0')).join('');
+}
+function themeCss(theme) {
+    let css = '';
+    [['light', 'html:not([data-theme="dark"])'], ['dark', 'html[data-theme="dark"]']].forEach(([mode, sel]) => {
+        const t = (theme || {})[mode] || {};
+        const decl = Object.entries(THEME_VARS).filter(([k]) => /^#[0-9a-f]{6}$/i.test(t[k] || '')).map(([k, v]) =>
+            `${v}: ${t[k]};` + (k === 'accent' ? ` --accent-hover: ${shadeHex(t[k], mode === 'dark' ? 0.2 : -0.12)};` : '')
+        ).join(' ');
+        if (decl) css += `${sel} { ${decl} }\n`;
+    });
+    return css;
+}
+function applyThemeCss(css) {
+    let el = document.getElementById('site-theme');
+    if (!el) { el = document.createElement('style'); el.id = 'site-theme'; document.head.appendChild(el); }
+    el.textContent = css || '';
+}
 function esc(s) {
     return str(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -136,6 +184,12 @@ function altText(ru, en) {
 
 function applySettings() {
     const site = siteSettings.site || {};
+
+    if (Array.isArray(site.menu) && site.menu.length) renderMenu(site.menu);
+
+    const css = themeCss(site.theme);
+    applyThemeCss(css);
+    try { if (css) localStorage.setItem('siteThemeCss', css); else localStorage.removeItem('siteThemeCss'); } catch (e) {}
 
     if (Array.isArray(site.socials)) {
         const links = site.socials.filter(s => s && s.url).map(s =>

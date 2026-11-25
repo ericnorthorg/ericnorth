@@ -691,13 +691,70 @@ async function renderSettings() {
     if (state.section !== 'settings') return;
     const site = structuredClone(data?.value || {});
     site.socials = site.socials || []; site.home_cards = site.home_cards || []; site.contact = site.contact || { enabled: true };
+    site.menu = site.menu || []; site.theme = site.theme || {};
     main.innerHTML = '';
-    main.append(el('div', { class: 'page-head' }, [el('div', {}, [el('h2', { text: 'Настройки' }), el('div', { class: 'sub', text: 'Соцсети в подвале, карточки-кнопки на главной и блок «Написать автору»' })])]));
+    main.append(el('div', { class: 'page-head' }, [el('div', {}, [el('h2', { text: 'Настройки' }), el('div', { class: 'sub', text: 'Меню, цвета сайта, соцсети в подвале, карточки-кнопки на главной и блок «Написать автору»' })])]));
     const form = el('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } });
     main.append(form);
 
+    // Меню
+    const inp = (obj, k, ph, list) => { const i = el('input', { class: 'input', placeholder: ph || '', value: obj[k] || '', list }); i.oninput = () => obj[k] = i.value.trim(); return i; };
+    form.append(el('h3', { class: 'section-title', style: 'margin-top:0;padding-top:0;border:none' }, [el('span', { text: 'Меню сайта (шапка и подвал)' })]));
+    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Порядок — стрелками. Ссылка: страница сайта (blog.html), пост, глава или внешний адрес https://…' }));
+    const menuBox = el('div'); form.append(menuBox);
+    const drawMenu = () => {
+        menuBox.innerHTML = '';
+        site.menu.forEach((m, i) => {
+            const hid = el('input', { type: 'checkbox' }); hid.checked = !!m.hidden; hid.onchange = () => m.hidden = hid.checked;
+            menuBox.append(el('div', { class: 'repeater-item' }, [
+                el('div', { class: 'repeater-head' }, [el('span', { text: `Пункт ${i + 1}` + (m.label_ru ? ` — ${m.label_ru}` : '') }), el('div', { class: 'inline' }, [
+                    el('button', { class: 'btn btn-icon', type: 'button', title: 'Выше', disabled: i === 0, onclick: () => { [site.menu[i - 1], site.menu[i]] = [site.menu[i], site.menu[i - 1]]; drawMenu(); } }, el('i', { class: 'fa-solid fa-arrow-up' })),
+                    el('button', { class: 'btn btn-icon', type: 'button', title: 'Ниже', disabled: i === site.menu.length - 1, onclick: () => { [site.menu[i + 1], site.menu[i]] = [site.menu[i], site.menu[i + 1]]; drawMenu(); } }, el('i', { class: 'fa-solid fa-arrow-down' })),
+                    el('button', { class: 'btn btn-icon btn-danger', type: 'button', title: 'Удалить', onclick: () => { if (confirm('Удалить пункт меню?')) { site.menu.splice(i, 1); drawMenu(); } } }, el('i', { class: 'fa-solid fa-trash' }))])]),
+                el('div', { class: 'grid-3' }, [
+                    el('div', { class: 'field' }, [el('label', { text: 'Название RU' }), inp(m, 'label_ru')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Название EN' }), inp(m, 'label_en')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Название UK' }), inp(m, 'label_uk')])]),
+                el('div', { class: 'field' }, [el('label', { text: 'Куда ведёт' }), inp(m, 'link', 'blog.html', 'link-options')]),
+                el('label', { class: 'check' }, [hid, 'Скрыть пункт'])]));
+        });
+    };
+    drawMenu();
+    form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.menu.push({ link: '', label_ru: '', label_en: '', label_uk: '' }); drawMenu(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить пункт меню']));
+
+    // Цвета
+    const THEME_DEFAULTS = { light: { accent: '#ff500a', bg: '#ffffff', text: '#222222', card: '#f9f9f9' }, dark: { accent: '#ff6b35', bg: '#121212', text: '#e0e0e0', card: '#1e1e1e' } };
+    const THEME_LABELS = { accent: 'Акцент (кнопки, ссылки)', bg: 'Фон страницы', text: 'Текст', card: 'Фон карточек' };
+    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Цвета сайта' })]));
+    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Отдельно для светлой и тёмной темы. Справа — как это будет выглядеть.' }));
+    const themeBox = el('div', { class: 'grid-2' }); form.append(themeBox);
+    const drawTheme = () => {
+        themeBox.innerHTML = '';
+        ['light', 'dark'].forEach(mode => {
+            site.theme[mode] = site.theme[mode] || {};
+            const val = k => site.theme[mode][k] || THEME_DEFAULTS[mode][k];
+            const preview = el('div', { style: 'border-radius:8px;padding:16px;margin-top:6px;border:1px solid var(--border)' });
+            const paint = () => {
+                preview.style.background = val('bg'); preview.style.color = val('text');
+                preview.innerHTML = `<div style="background:${val('card')};border-radius:8px;padding:12px;margin-bottom:10px"><b style="font-family:Merriweather,serif">Заголовок карточки</b><div style="opacity:.75;font-size:.85rem;margin-top:4px">Обычный текст на карточке</div></div>` +
+                    `<span style="color:${val('accent')};font-weight:700">Ссылка</span> &nbsp; <span style="background:${val('accent')};color:#fff;padding:6px 14px;border-radius:30px;font-weight:700;font-size:.85rem">Кнопка</span>`;
+            };
+            const rows = Object.keys(THEME_LABELS).map(k => {
+                const c = el('input', { type: 'color', value: val(k), style: 'width:44px;height:32px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer' });
+                c.oninput = () => { if (c.value.toLowerCase() === THEME_DEFAULTS[mode][k]) delete site.theme[mode][k]; else site.theme[mode][k] = c.value.toLowerCase(); paint(); };
+                return el('div', { class: 'inline', style: 'margin-bottom:8px' }, [c, el('span', { text: THEME_LABELS[k] })]);
+            });
+            paint();
+            themeBox.append(el('div', { class: 'repeater-item' }, [
+                el('div', { class: 'repeater-head' }, [el('span', { text: mode === 'light' ? 'Светлая тема' : 'Тёмная тема' }),
+                    el('button', { class: 'btn', type: 'button', onclick: () => { site.theme[mode] = {}; drawTheme(); } }, 'Сбросить')]),
+                ...rows, preview]));
+        });
+    };
+    drawTheme();
+
     // Соцсети
-    form.append(el('h3', { class: 'section-title', style: 'margin-top:0;padding-top:0;border:none' }, [el('span', { text: 'Соцсети в подвале сайта' })]));
+    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Соцсети в подвале сайта' })]));
     form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Показываются только те, у которых заполнена ссылка.' }));
     const socialsBox = el('div'); form.append(socialsBox);
     const drawSocials = () => {
