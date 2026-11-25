@@ -339,8 +339,9 @@
                     const fallbackImg = 'https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80';
                     const categoryRu = post.meta_ru ? post.meta_ru.split('|')[0] : 'Блог';
                     const categoryEn = post.meta_en ? post.meta_en.split('|')[0] : 'Blog';
+                    const categoryUk = post.meta_uk ? post.meta_uk.split('|')[0] : 'Блог';
                     
-                    document.title = (currentLang === 'ru' ? post.title_ru : post.title_en) + " | Eric North";
+                    document.title = (post['title_' + currentLang] || post.title_en) + " | Eric North";
 
                     // 1. Отрисовка самого поста
                     mainContainer.innerHTML = `
@@ -358,7 +359,7 @@
                             <div class="post-meta">
                                 <span class="post-category">
                                     <span class="lang-ru">${categoryRu}</span>
-                                    <span class="lang-en" hidden>${categoryEn}</span>
+                                    <span class="lang-en" hidden>${categoryEn}</span><span class="lang-uk" hidden>${categoryUk}</span>
                                 </span>
                                 <span class="post-meta-divider">•</span>
                                 <span class="post-date">2026</span>
@@ -366,12 +367,13 @@
                             
                             <h1 class="post-title">
                                 <span class="lang-ru">${post.title_ru}</span>
-                                <span class="lang-en" hidden>${post.title_en}</span>
+                                <span class="lang-en" hidden>${post.title_en}</span><span class="lang-uk" hidden>${post.title_uk}</span>
                             </h1>
                             
                             <div class="post-content">
                                 <div class="lang-ru">${post.body_ru}</div>
                                 <div class="lang-en" hidden>${post.body_en}</div>
+                                <div class="lang-uk" hidden>${post.body_uk}</div>
                             </div>
                         </article>
                     `;
@@ -406,7 +408,7 @@
                                         <div class="rm-content">
                                             <h4 class="rm-title">
                                                 <span class="lang-ru">${sp.title_ru}</span>
-                                                <span class="lang-en" hidden>${sp.title_en}</span>
+                                                <span class="lang-en" hidden>${sp.title_en}</span><span class="lang-uk" hidden>${sp.title_uk}</span>
                                             </h4>
                                         </div>
                                     </a>

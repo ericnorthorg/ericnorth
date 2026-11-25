@@ -158,15 +158,15 @@
     </header>
     <main>
         <div class="blog-header">
-            <h1 class="blog-title"><span class="lang-ru">Блог</span><span class="lang-en" hidden>Blog</span></h1>
-            <p class="blog-subtitle"><span class="lang-ru">Мысли, новости и черновики ненаписанных книг</span><span class="lang-en" hidden>Thoughts, news, and drafts of unwritten books</span></p>
+            <h1 class="blog-title"><span class="lang-ru">Блог</span><span class="lang-en" hidden>Blog</span><span class="lang-uk" hidden>Блог</span></h1>
+            <p class="blog-subtitle"><span class="lang-ru">Мысли, новости и черновики ненаписанных книг</span><span class="lang-en" hidden>Thoughts, news, and drafts of unwritten books</span><span class="lang-uk" hidden>Думки, новини й чернетки ненаписаних книжок</span></p>
         </div>
         <div id="featured-container"></div>
         <div class="filters-container">
-            <button class="filter-btn active" onclick="filterSelection('all')"><span class="lang-ru">Все</span><span class="lang-en" hidden>All</span></button>
-            <button class="filter-btn" onclick="filterSelection('stories')"><span class="lang-ru">Рассказы</span><span class="lang-en" hidden>Stories</span></button>
-            <button class="filter-btn" onclick="filterSelection('lore')"><span class="lang-ru">Лор</span><span class="lang-en" hidden>Lore</span></button>
-            <button class="filter-btn" onclick="filterSelection('news')"><span class="lang-ru">Новости</span><span class="lang-en" hidden>News</span></button>
+            <button class="filter-btn active" onclick="filterSelection('all')"><span class="lang-ru">Все</span><span class="lang-en" hidden>All</span><span class="lang-uk" hidden>Усі</span></button>
+            <button class="filter-btn" onclick="filterSelection('stories')"><span class="lang-ru">Рассказы</span><span class="lang-en" hidden>Stories</span><span class="lang-uk" hidden>Оповідання</span></button>
+            <button class="filter-btn" onclick="filterSelection('lore')"><span class="lang-ru">Лор</span><span class="lang-en" hidden>Lore</span><span class="lang-uk" hidden>Лор</span></button>
+            <button class="filter-btn" onclick="filterSelection('news')"><span class="lang-ru">Новости</span><span class="lang-en" hidden>News</span><span class="lang-uk" hidden>Новини</span></button>
         </div>
         <div class="blog-grid" id="blog-grid-container"></div>
     </main>
@@ -271,10 +271,10 @@
                         <a href="posts.html?id=featured" class="featured-post">
                             <div class="featured-image-wrapper"><img src="${featuredPost.image}" alt="${altText(featuredPost.title_ru, featuredPost.title_en)}" class="featured-image" loading="lazy"></div>
                             <div class="featured-content">
-                                <div class="featured-label"><span class="lang-ru">Избранное</span><span class="lang-en" hidden>Featured</span></div>
-                                <h2 class="featured-title"><span class="lang-ru">${featuredPost.title_ru}</span><span class="lang-en" hidden>${featuredPost.title_en}</span></h2>
-                                <p class="featured-text"><span class="lang-ru">${featuredPost.body_ru.substring(0, 150).replace(/<[^>]*>/g, '')}...</span><span class="lang-en" hidden>${featuredPost.body_en.substring(0, 150).replace(/<[^>]*>/g, '')}...</span></p>
-                                <span class="card-btn" style="font-size: 1.1rem;"><span class="lang-ru">Читать статью</span><span class="lang-en" hidden>Read Article</span> <i class="fa-solid fa-arrow-right"></i></span>
+                                <div class="featured-label"><span class="lang-ru">Избранное</span><span class="lang-en" hidden>Featured</span><span class="lang-uk" hidden>Вибране</span></div>
+                                <h2 class="featured-title"><span class="lang-ru">${featuredPost.title_ru}</span><span class="lang-en" hidden>${featuredPost.title_en}</span><span class="lang-uk" hidden>${featuredPost.title_uk}</span></h2>
+                                <p class="featured-text"><span class="lang-ru">${featuredPost.body_ru.substring(0, 150).replace(/<[^>]*>/g, '')}...</span><span class="lang-en" hidden>${featuredPost.body_en.substring(0, 150).replace(/<[^>]*>/g, '')}...</span><span class="lang-uk" hidden>${featuredPost.body_uk.substring(0, 150).replace(/<[^>]*>/g, '')}...</span></p>
+                                <span class="card-btn" style="font-size: 1.1rem;"><span class="lang-ru">Читать статью</span><span class="lang-en" hidden>Read Article</span><span class="lang-uk" hidden>Читати статтю</span> <i class="fa-solid fa-arrow-right"></i></span>
                             </div>
                         </a>
                     `;
@@ -290,12 +290,12 @@
                         <div class="card-image-wrapper"><img src="${post.image}" alt="${altText(post.title_ru, post.title_en)}" class="card-image" loading="lazy"></div>
                         <div class="card-content">
                             <div class="card-meta">
-                                <span class="card-category"><span class="lang-ru">${post.meta_ru ? post.meta_ru.split('|')[0] : 'Блог'}</span><span class="lang-en" hidden>${post.meta_en ? post.meta_en.split('|')[0] : 'Blog'}</span></span>
+                                <span class="card-category"><span class="lang-ru">${post.meta_ru ? post.meta_ru.split('|')[0] : 'Блог'}</span><span class="lang-en" hidden>${post.meta_en ? post.meta_en.split('|')[0] : 'Blog'}</span><span class="lang-uk" hidden>${post.meta_uk ? post.meta_uk.split('|')[0] : 'Блог'}</span></span>
                                 <span class="card-date">2026</span>
                             </div>
-                            <h3 class="card-title"><span class="lang-ru">${post.title_ru}</span><span class="lang-en" hidden>${post.title_en}</span></h3>
-                            <p class="card-excerpt"><span class="lang-ru">${post.body_ru.substring(0, 100).replace(/<[^>]*>/g, '')}...</span><span class="lang-en" hidden>${post.body_en.substring(0, 100).replace(/<[^>]*>/g, '')}...</span></p>
-                            <span class="card-btn"><span class="lang-ru">Читать</span><span class="lang-en" hidden>Read</span> <i class="fa-solid fa-arrow-right"></i></span>
+                            <h3 class="card-title"><span class="lang-ru">${post.title_ru}</span><span class="lang-en" hidden>${post.title_en}</span><span class="lang-uk" hidden>${post.title_uk}</span></h3>
+                            <p class="card-excerpt"><span class="lang-ru">${post.body_ru.substring(0, 100).replace(/<[^>]*>/g, '')}...</span><span class="lang-en" hidden>${post.body_en.substring(0, 100).replace(/<[^>]*>/g, '')}...</span><span class="lang-uk" hidden>${post.body_uk.substring(0, 100).replace(/<[^>]*>/g, '')}...</span></p>
+                            <span class="card-btn"><span class="lang-ru">Читать</span><span class="lang-en" hidden>Read</span><span class="lang-uk" hidden>Читати</span> <i class="fa-solid fa-arrow-right"></i></span>
                         </div>
                     `;
                     grid.appendChild(card);

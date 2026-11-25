@@ -155,7 +155,7 @@
                 <i class="fa-solid fa-book-open" style="font-size: 3rem; margin-bottom: 15px; color: var(--border-color);"></i>
                 <br>
                 <span class="lang-ru">Связь с базой данных...</span>
-                <span class="lang-en" hidden>Connecting to database...</span>
+                <span class="lang-en" hidden>Connecting to database...</span><span class="lang-uk" hidden>Підключення до бази...</span>
             </div>
         </div>
     </main>
@@ -289,11 +289,15 @@
                     // Обработка тегов (ожидаем строку через запятую)
                     let tagsHtmlRu = '';
                     let tagsHtmlEn = '';
+                    let tagsHtmlUk = '';
                     if (book.tags_ru) {
                         book.tags_ru.split(',').forEach(tag => tagsHtmlRu += `<span class="tag">${tag.trim()}</span>`);
                     }
                     if (book.tags_en) {
                         book.tags_en.split(',').forEach(tag => tagsHtmlEn += `<span class="tag">${tag.trim()}</span>`);
+                    }
+                    if (book.tags_uk) {
+                        book.tags_uk.split(',').forEach(tag => tagsHtmlUk += `<span class="tag">${tag.trim()}</span>`);
                     }
 
                     // Проверка: читал ли пользователь эту книгу ранее?
@@ -317,15 +321,15 @@
                             <div class="book-info">
                                 <div class="book-tags">
                                     <span class="lang-ru">${tagsHtmlRu || '<span class="tag">Фэнтези</span>'}</span>
-                                    <span class="lang-en" hidden>${tagsHtmlEn || '<span class="tag">Fantasy</span>'}</span>
+                                    <span class="lang-en" hidden>${tagsHtmlEn || '<span class="tag">Fantasy</span>'}</span><span class="lang-uk" hidden>${tagsHtmlUk || '<span class="tag">Фентезі</span>'}</span>
                                 </div>
                                 <h2 class="book-title">
                                     <span class="lang-ru">${book.title_ru}</span>
-                                    <span class="lang-en" hidden>${book.title_en}</span>
+                                    <span class="lang-en" hidden>${book.title_en}</span><span class="lang-uk" hidden>${book.title_uk}</span>
                                 </h2>
                                 <div class="book-desc">
                                     <span class="lang-ru">${book.desc_ru}</span>
-                                    <span class="lang-en" hidden>${book.desc_en}</span>
+                                    <span class="lang-en" hidden>${book.desc_en}</span><span class="lang-uk" hidden>${book.desc_uk}</span>
                                 </div>
                                 <div class="book-actions">
                                     <a href="${readLink}" class="btn-read">
@@ -344,7 +348,7 @@
                         <i class="fa-solid fa-book" style="font-size: 3rem; margin-bottom: 15px; color: var(--border-color);"></i>
                         <br>
                         <span class="lang-ru">Библиотека пока пуста. Скоро здесь появятся истории.</span>
-                        <span class="lang-en" hidden>The library is currently empty. Stories will appear here soon.</span>
+                        <span class="lang-en" hidden>The library is currently empty. Stories will appear here soon.</span><span class="lang-uk" hidden>Бібліотека поки порожня. Незабаром тут з’являться історії.</span>
                     </div>
                 `;
             }

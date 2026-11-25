@@ -138,10 +138,10 @@
     <main>
         <div class="page-header">
             <h1 class="page-title">
-                <span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span>
+                <span class="lang-ru">Проекты</span><span class="lang-en" hidden>Projects</span><span class="lang-uk" hidden>Проєкти</span>
             </h1>
             <p class="page-subtitle">
-                <span class="lang-ru">Творческая мастерская</span><span class="lang-en" hidden>Creative Workshop</span>
+                <span class="lang-ru">Творческая мастерская</span><span class="lang-en" hidden>Creative Workshop</span><span class="lang-uk" hidden>Творча майстерня</span>
             </p>
         </div>
         <div class="projects-grid" id="projects-grid-container"></div>
@@ -242,17 +242,17 @@
                     card.className = 'project-card';
                     card.innerHTML = `
                         <div class="project-status ${proj.statusClass}">
-                            <span class="lang-ru">${proj.status_ru}</span><span class="lang-en" hidden>${proj.status_en}</span>
+                            <span class="lang-ru">${proj.status_ru}</span><span class="lang-en" hidden>${proj.status_en}</span><span class="lang-uk" hidden>${proj.status_uk}</span>
                         </div>
                         <h3 class="project-title">
-                            <span class="lang-ru">${proj.title_ru}</span><span class="lang-en" hidden>${proj.title_en}</span>
+                            <span class="lang-ru">${proj.title_ru}</span><span class="lang-en" hidden>${proj.title_en}</span><span class="lang-uk" hidden>${proj.title_uk}</span>
                         </h3>
                         <p class="project-desc">
-                            <span class="lang-ru">${proj.desc_ru}</span><span class="lang-en" hidden>${proj.desc_en}</span>
+                            <span class="lang-ru">${proj.desc_ru}</span><span class="lang-en" hidden>${proj.desc_en}</span><span class="lang-uk" hidden>${proj.desc_uk}</span>
                         </p>
                         <div class="progress-container">
                             <div class="progress-labels">
-                                <span><span class="lang-ru">${proj.progressLabel_ru}</span><span class="lang-en" hidden>${proj.progressLabel_en}</span></span>
+                                <span><span class="lang-ru">${proj.progressLabel_ru}</span><span class="lang-en" hidden>${proj.progressLabel_en}</span><span class="lang-uk" hidden>${proj.progressLabel_uk}</span></span>
                                 <span>${proj.progress}%</span>
                             </div>
                             <div class="progress-track">

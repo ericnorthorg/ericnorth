@@ -151,7 +151,7 @@
                 <i class="fa-solid fa-pen-nib" style="font-size: 2rem; margin-bottom: 10px; color: var(--border-color);"></i>
                 <br>
                 <span class="lang-ru">Загрузка архивов...</span>
-                <span class="lang-en" hidden>Loading archives...</span>
+                <span class="lang-en" hidden>Loading archives...</span><span class="lang-uk" hidden>Завантаження архівів...</span>
             </div>
         </div>
     </main>
@@ -280,15 +280,16 @@
                         <div class="note-card">
                             <span class="note-date">
                                 <span class="lang-ru">${note.date_ru || ''}</span>
-                                <span class="lang-en" hidden>${note.date_en || ''}</span>
+                                <span class="lang-en" hidden>${note.date_en || ''}</span><span class="lang-uk" hidden>${note.date_uk || ''}</span>
                             </span>
                             <h3 class="note-title">
                                 <span class="lang-ru">${note.title_ru}</span>
-                                <span class="lang-en" hidden>${note.title_en}</span>
+                                <span class="lang-en" hidden>${note.title_en}</span><span class="lang-uk" hidden>${note.title_uk}</span>
                             </h3>
                             <div class="note-content">
                                 <div class="lang-ru">${note.text_ru}</div>
                                 <div class="lang-en" hidden>${note.text_en}</div>
+                                <div class="lang-uk" hidden>${note.text_uk}</div>
                             </div>
                         </div>
                     `;
@@ -301,7 +302,7 @@
                         <i class="fa-solid fa-pen-nib" style="font-size: 2rem; margin-bottom: 10px; color: var(--border-color);"></i>
                         <br>
                         <span class="lang-ru">Здесь пока нет записей.</span>
-                        <span class="lang-en" hidden>There are no notes here yet.</span>
+                        <span class="lang-en" hidden>There are no notes here yet.</span><span class="lang-uk" hidden>Тут поки немає записів.</span>
                     </div>
                 `;
             }

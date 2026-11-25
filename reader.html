@@ -253,15 +253,16 @@
 
                 container.innerHTML = `
                     <div class="chapter-header">
-                        <h1 class="chapter-title"><span class="lang-ru">${chapter.title_ru}</span><span class="lang-en" hidden>${chapter.title_en}</span></h1>
+                        <h1 class="chapter-title"><span class="lang-ru">${chapter.title_ru}</span><span class="lang-en" hidden>${chapter.title_en}</span><span class="lang-uk" hidden>${chapter.title_uk}</span></h1>
                     </div>
                     <div class="chapter-content">
                         <div class="lang-ru">${chapter.text_ru}</div>
                         <div class="lang-en" hidden>${chapter.text_en}</div>
+                        <div class="lang-uk" hidden>${chapter.text_uk}</div>
                     </div>
                 `;
                 
-                document.title = (window.currentLang === 'ru' ? chapter.title_ru : chapter.title_en) + " | Eric North";
+                document.title = (chapter['title_' + window.currentLang] || chapter.title_en) + " | Eric North";
 
                 // Применяем сохраненные настройки текста к загруженной главе
                 changeFontFamily(currentFontFamily);

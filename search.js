@@ -65,13 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const [id, post] of Object.entries(postsDB)) {
                 if (post.hidden) continue;
                 
-                const title = lang === 'ru' ? post.title_ru : post.title_en;
-                const body = lang === 'ru' ? post.body_ru : post.body_en;
+                const title = (post[`title_${lang}`] || post.title_en);
+                const body = (post[`body_${lang}`] || post.body_en);
                 
                 if (getSafeStr(title).includes(query) || getSafeStr(body).includes(query)) {
                     results.push({
-                        type: lang === 'ru' ? 'Блог' : 'Blog',
-                        title: title || (lang === 'ru' ? 'Без заголовка' : 'Untitled'),
+                        type: (lang === 'ru' ? 'Блог' : lang === 'uk' ? 'Блог' : 'Blog'),
+                        title: title || ((lang === 'ru' ? 'Без заголовка' : lang === 'uk' ? 'Без назви' : 'Untitled')),
                         text: stripHtml(body),
                         link: `posts.html?id=${id}`
                     });
@@ -82,13 +82,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. ПОИСК ПО ГЛАВАМ ИЗ ЧИТАЛКИ (chaptersDB)
         if (typeof chaptersDB !== 'undefined') {
             chaptersDB.forEach(chapter => {
-                const title = lang === 'ru' ? chapter.title_ru : chapter.title_en;
-                const text = lang === 'ru' ? chapter.text_ru : chapter.text_en;
+                const title = (chapter[`title_${lang}`] || chapter.title_en);
+                const text = (chapter[`text_${lang}`] || chapter.text_en);
 
                 if (getSafeStr(title).includes(query) || getSafeStr(text).includes(query)) {
                     results.push({
-                        type: lang === 'ru' ? 'Книга (Глава)' : 'Book (Chapter)',
-                        title: title || (lang === 'ru' ? `Глава ${chapter.chapter_num}` : `Chapter ${chapter.chapter_num}`),
+                        type: (lang === 'ru' ? 'Книга (Глава)' : lang === 'uk' ? 'Книга (розділ)' : 'Book (Chapter)'),
+                        title: title || ((lang === 'ru' ? `Глава ${chapter.chapter_num}` : lang === 'uk' ? `Розділ ${chapter.chapter_num}` : `Chapter ${chapter.chapter_num}`)),
                         text: stripHtml(text),
                         link: `reader.html?book=${chapter.book_id}&chapter=${chapter.chapter_num}`
                     });
@@ -99,12 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. ПОИСК ПО КНИГАМ (booksDB)
         if (typeof booksDB !== 'undefined') {
             booksDB.forEach(book => {
-                const title = lang === 'ru' ? book.title_ru : book.title_en;
-                const desc = lang === 'ru' ? book.desc_ru : book.desc_en;
+                const title = (book[`title_${lang}`] || book.title_en);
+                const desc = (book[`desc_${lang}`] || book.desc_en);
 
                 if (getSafeStr(title).includes(query) || getSafeStr(desc).includes(query)) {
                     results.push({
-                        type: lang === 'ru' ? 'Витрина книг' : 'Bookstore',
+                        type: (lang === 'ru' ? 'Витрина книг' : lang === 'uk' ? 'Вітрина книг' : 'Bookstore'),
                         title: title || 'Книга',
                         text: desc || '',
                         link: 'books.html'
@@ -116,12 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. ПОИСК ПО ПРОЕКТАМ (projectsDB)
         if (typeof projectsDB !== 'undefined') {
             projectsDB.forEach(proj => {
-                const title = lang === 'ru' ? proj.title_ru : proj.title_en;
-                const desc = lang === 'ru' ? proj.desc_ru : proj.desc_en;
+                const title = (proj[`title_${lang}`] || proj.title_en);
+                const desc = (proj[`desc_${lang}`] || proj.desc_en);
 
                 if (getSafeStr(title).includes(query) || getSafeStr(desc).includes(query)) {
                     results.push({
-                        type: lang === 'ru' ? 'Проект' : 'Project',
+                        type: (lang === 'ru' ? 'Проект' : lang === 'uk' ? 'Проєкт' : 'Project'),
                         title: title || 'Проект',
                         text: desc || '',
                         link: 'projects.html'
@@ -133,13 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // 5. ПОИСК ПО ЗАМЕТКАМ (notesDB)
         if (typeof notesDB !== 'undefined') {
             notesDB.forEach(note => {
-                const title = lang === 'ru' ? note.title_ru : note.title_en;
-                const text = lang === 'ru' ? note.text_ru : note.text_en;
+                const title = (note[`title_${lang}`] || note.title_en);
+                const text = (note[`text_${lang}`] || note.text_en);
 
                 if (getSafeStr(title).includes(query) || getSafeStr(text).includes(query)) {
                     results.push({
-                        type: lang === 'ru' ? 'Заметка' : 'Note',
-                        title: title || (lang === 'ru' ? 'Короткая заметка' : 'Quick Note'),
+                        type: (lang === 'ru' ? 'Заметка' : lang === 'uk' ? 'Нотатка' : 'Note'),
+                        title: title || ((lang === 'ru' ? 'Короткая заметка' : lang === 'uk' ? 'Коротка нотатка' : 'Quick Note')),
                         text: text || '',
                         link: 'notes.html'
                     });
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- ВЫВОД РЕЗУЛЬТАТОВ НА ЭКРАН ---
         if (results.length === 0) {
-            resultsDiv.innerHTML = `<p style="margin-top:20px; text-align:center; font-style:italic; color: var(--secondary-text)">${lang === 'ru' ? 'По вашему запросу ничего не найдено.' : 'No results found.'}</p>`;
+            resultsDiv.innerHTML = `<p style="margin-top:20px; text-align:center; font-style:italic; color: var(--secondary-text)">${(lang === 'ru' ? 'По вашему запросу ничего не найдено.' : lang === 'uk' ? 'За вашим запитом нічого не знайдено.' : 'No results found.')}</p>`;
         } else {
             results.forEach(item => {
                 const el = document.createElement('a');

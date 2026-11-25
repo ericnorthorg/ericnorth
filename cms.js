@@ -67,54 +67,55 @@ function fetchTable(table, query) {
 const str = v => (v === null || v === undefined) ? '' : String(v);
 
 function applyData(t) {
+    // Перевод с запасным вариантом: украинский → английский → русский
+    const tr = (o, f) => ({
+        [f + '_ru']: str(o[f + '_ru']),
+        [f + '_en']: str(o[f + '_en']) || str(o[f + '_ru']),
+        [f + '_uk']: str(o[f + '_uk']) || str(o[f + '_en']) || str(o[f + '_ru'])
+    });
+
     // Главная: hero + промо-блоки (id 'hero', 'promo1', 'promo2'... как раньше в таблице)
     let promoN = 0;
-    homeDB = t.home.map(b => {
-        const item = {};
-        ['image', 'title_ru', 'title_en', 'text_ru', 'text_en', 'subline_ru', 'subline_en', 'btn_text_ru', 'btn_text_en', 'link']
-            .forEach(k => item[k] = str(b[k]));
-        item.id = b.kind === 'hero' ? 'hero' : 'promo' + (++promoN);
-        item.reverse = b.reverse ? 'TRUE' : 'FALSE';
-        return item;
-    });
+    homeDB = t.home.map(b => ({
+        image: str(b.image), link: str(b.link),
+        ...tr(b, 'title'), ...tr(b, 'text'), ...tr(b, 'subline'), ...tr(b, 'btn_text'),
+        id: b.kind === 'hero' ? 'hero' : 'promo' + (++promoN),
+        reverse: b.reverse ? 'TRUE' : 'FALSE'
+    }));
 
     postsDB = {};
     t.posts.forEach(p => {
         postsDB[p.id] = {
             id: p.id, hidden: !!p.hidden, category: str(p.category), image: str(p.image),
-            meta_ru: str(p.meta_ru), meta_en: str(p.meta_en),
-            title_ru: str(p.title_ru), title_en: str(p.title_en) || str(p.title_ru),
-            body_ru: str(p.body_ru), body_en: str(p.body_en) || str(p.body_ru)
+            meta_ru: str(p.meta_ru), meta_en: str(p.meta_en), meta_uk: str(p.meta_uk) || str(p.meta_en),
+            ...tr(p, 'title'), ...tr(p, 'body')
         };
     });
 
     booksDB = t.books.map(b => ({
         id: b.id, cover: str(b.cover),
-        title_ru: str(b.title_ru), title_en: str(b.title_en) || str(b.title_ru),
-        desc_ru: str(b.desc_ru), desc_en: str(b.desc_en) || str(b.desc_ru),
-        tags_ru: str(b.tags_ru), tags_en: str(b.tags_en),
+        ...tr(b, 'title'), ...tr(b, 'desc'),
+        tags_ru: str(b.tags_ru), tags_en: str(b.tags_en), tags_uk: str(b.tags_uk) || str(b.tags_en),
         link_buy: str(b.link_buy), link_read: str(b.link_read)
     }));
 
     chaptersDB = t.chapters.map(c => ({
         book_id: c.book_id, chapter_num: String(c.chapter_num),
-        title_ru: str(c.title_ru), title_en: str(c.title_en) || str(c.title_ru),
-        text_ru: str(c.text_ru), text_en: str(c.text_en) || str(c.text_ru)
+        ...tr(c, 'title'), ...tr(c, 'text')
     }));
 
     projectsDB = t.projects.map(p => ({
-        statusClass: str(p.status_class), status_ru: str(p.status_ru), status_en: str(p.status_en),
-        title_ru: str(p.title_ru), title_en: str(p.title_en) || str(p.title_ru),
-        desc_ru: str(p.desc_ru), desc_en: str(p.desc_en) || str(p.desc_ru),
+        statusClass: str(p.status_class),
+        ...tr(p, 'status'), ...tr(p, 'title'), ...tr(p, 'desc'),
         progressLabel_ru: str(p.progress_label_ru), progressLabel_en: str(p.progress_label_en),
+        progressLabel_uk: str(p.progress_label_uk) || str(p.progress_label_en),
         progress: String(p.progress)
     }));
 
     // notes.html переворачивает список, поэтому отдаём в обратном порядке: первая в админке = первая на сайте
     notesDB = t.notes.map(n => ({
-        date_ru: str(n.date_ru), date_en: str(n.date_en),
-        title_ru: str(n.title_ru), title_en: str(n.title_en) || str(n.title_ru),
-        text_ru: str(n.text_ru), text_en: str(n.text_en) || str(n.text_ru)
+        date_ru: str(n.date_ru), date_en: str(n.date_en), date_uk: str(n.date_uk) || str(n.date_en),
+        ...tr(n, 'title'), ...tr(n, 'text')
     })).reverse();
 
     siteSettings = {};
@@ -151,8 +152,8 @@ function applySettings() {
         cardsBox.innerHTML = site.home_cards.filter(c => c && !c.hidden).map(c => `
             <a href="${esc(c.link || '#')}" class="link-card">
                 <i class="${esc(c.icon || 'fa-solid fa-star')}"></i>
-                <h3><span class="lang-ru">${esc(c.title_ru)}</span><span class="lang-en" hidden>${esc(c.title_en || c.title_ru)}</span></h3>
-                <p><span class="lang-ru">${esc(c.desc_ru)}</span><span class="lang-en" hidden>${esc(c.desc_en || c.desc_ru)}</span></p>
+                <h3><span class="lang-ru">${esc(c.title_ru)}</span><span class="lang-en" hidden>${esc(c.title_en || c.title_ru)}</span><span class="lang-uk" hidden>${esc(c.title_uk || c.title_en || c.title_ru)}</span></h3>
+                <p><span class="lang-ru">${esc(c.desc_ru)}</span><span class="lang-en" hidden>${esc(c.desc_en || c.desc_ru)}</span><span class="lang-uk" hidden>${esc(c.desc_uk || c.desc_en || c.desc_ru)}</span></p>
             </a>`).join('');
         cardsBox.style.display = cardsBox.innerHTML.trim() ? '' : 'none';
     }
@@ -162,7 +163,7 @@ function applySettings() {
     if (contactSection && contact) {
         contactSection.style.display = contact.enabled === false ? 'none' : '';
         if (typeof translations !== 'undefined') {
-            ['ru', 'en'].forEach(l => {
+            ['ru', 'en', 'uk'].forEach(l => {
                 if (!translations[l]) return;
                 if (contact['title_' + l]) translations[l].contact_title = contact['title_' + l];
                 if (contact['desc_' + l]) translations[l].contact_desc = contact['desc_' + l];
@@ -176,7 +177,7 @@ function applySettings() {
 // 4. ГЛАВЫ: полный текст грузим только там, где он нужен
 // На обычных страницах — только номера и названия глав (для «Продолжить чтение»),
 // в читалке — плюс текст открытой главы, в поиске — все тексты по первому запросу.
-const CHAPTER_META = 'book_id,chapter_num,title_ru,title_en';
+const CHAPTER_META = 'book_id,chapter_num,title_ru,title_en,title_uk';
 let chapterTextsLoaded = false;
 
 async function fetchChapters() {
@@ -187,12 +188,12 @@ async function fetchChapters() {
     const [meta, current] = await Promise.all([
         fetchTable('chapters', base),
         isReader
-            ? fetchTable('chapters', `select=book_id,chapter_num,text_ru,text_en&hidden=eq.false&book_id=eq.${encodeURIComponent(book)}&chapter_num=eq.${chapter}`)
+            ? fetchTable('chapters', `select=book_id,chapter_num,text_ru,text_en,text_uk&hidden=eq.false&book_id=eq.${encodeURIComponent(book)}&chapter_num=eq.${chapter}`)
             : Promise.resolve([])
     ]);
     return meta.map(c => {
         const full = current.find(x => x.book_id === c.book_id && x.chapter_num === c.chapter_num);
-        return full ? { ...c, text_ru: full.text_ru, text_en: full.text_en } : c;
+        return full ? { ...c, text_ru: full.text_ru, text_en: full.text_en, text_uk: full.text_uk } : c;
     });
 }
 
@@ -201,11 +202,11 @@ let chapterTextsPromise = null;
 function loadChapterTexts() {
     if (chapterTextsLoaded) return Promise.resolve();
     if (!chapterTextsPromise) {
-        chapterTextsPromise = fetchTable('chapters', 'select=book_id,chapter_num,text_ru,text_en&hidden=eq.false')
+        chapterTextsPromise = fetchTable('chapters', 'select=book_id,chapter_num,text_ru,text_en,text_uk&hidden=eq.false')
             .then(rows => {
                 rows.forEach(r => {
                     const ch = chaptersDB.find(c => c.book_id === r.book_id && String(c.chapter_num) === String(r.chapter_num));
-                    if (ch) { ch.text_ru = str(r.text_ru); ch.text_en = str(r.text_en) || str(r.text_ru); }
+                    if (ch) { ch.text_ru = str(r.text_ru); ch.text_en = str(r.text_en) || str(r.text_ru); ch.text_uk = str(r.text_uk) || ch.text_en; }
                 });
                 chapterTextsLoaded = true;
             })

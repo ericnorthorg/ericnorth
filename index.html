@@ -169,11 +169,11 @@
             <div class="hero-content">
                 <h1 class="hero-title-large" id="hero-title">
                     <span class="lang-ru">Истории на грани <span style="color: var(--accent-color);">света и тьмы</span></span>
-                    <span class="lang-en" hidden>Stories on the edge <span style="color: var(--accent-color);">of light and dark</span></span>
+                    <span class="lang-en" hidden>Stories on the edge <span style="color: var(--accent-color);">of light and dark</span></span><span class="lang-uk" hidden>Історії на межі <span style="color: var(--accent-color);">світла й темряви</span></span>
                 </h1>
                 <p class="hero-subtitle" id="hero-subtitle">
                     <span class="lang-ru">Добро пожаловать в творческую мастерскую Эрика Норта. Романы, рассказы и лор вселенной от первого лица.</span>
-                    <span class="lang-en" hidden>Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand.</span>
+                    <span class="lang-en" hidden>Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand.</span><span class="lang-uk" hidden>Ласкаво просимо до творчої майстерні Еріка Норта. Романи, оповідання та лор всесвіту з перших вуст.</span>
                 </p>
             </div>
         </div>
@@ -384,15 +384,15 @@
                         <div style="background-color: var(--card-bg); border: 1px solid var(--accent-color); border-radius: 12px; padding: 20px 30px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; box-shadow: 0 5px 15px rgba(255, 80, 10, 0.1);">
                             <div>
                                 <div style="font-size: 0.85rem; text-transform: uppercase; color: var(--accent-color); font-weight: 700; margin-bottom: 5px;">
-                                    <span class="lang-ru">Вы остановились на:</span><span class="lang-en" hidden>You left off at:</span>
+                                    <span class="lang-ru">Вы остановились на:</span><span class="lang-en" hidden>You left off at:</span><span class="lang-uk" hidden>Ви зупинилися на:</span>
                                 </div>
                                 <h3 style="margin: 0; font-family: 'Merriweather', serif; font-size: 1.3rem; color: var(--text-color);">
                                     <span class="lang-ru">${book.title_ru} — ${chapter.title_ru}</span>
-                                    <span class="lang-en" hidden>${book.title_en} — ${chapter.title_en}</span>
+                                    <span class="lang-en" hidden>${book.title_en} — ${chapter.title_en}</span><span class="lang-uk" hidden>${book.title_uk} — ${chapter.title_uk}</span>
                                 </h3>
                             </div>
                             <a href="reader.html?book=${lastBookId}&chapter=${lastChapterNum}" style="background-color: var(--accent-color); color: white; padding: 10px 25px; border-radius: 30px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: transform 0.2s; text-decoration: none;">
-                                <span class="lang-ru">Продолжить чтение</span><span class="lang-en" hidden>Continue Reading</span> <i class="fa-solid fa-book-open"></i>
+                                <span class="lang-ru">Продолжить чтение</span><span class="lang-en" hidden>Continue Reading</span><span class="lang-uk" hidden>Продовжити читання</span> <i class="fa-solid fa-book-open"></i>
                             </a>
                         </div>
                     `;
@@ -409,14 +409,14 @@
                     // Обновленный скрипт с проверкой на новые колонки (с дефолтным текстом)
                     titleContainer.innerHTML = `
                         <span class="lang-ru">${heroData.title_ru || 'Истории на грани'} <span style="color: var(--accent-color);">${heroData.text_ru || 'света и тьмы'}</span></span>
-                        <span class="lang-en" hidden>${heroData.title_en || 'Stories on the edge'} <span style="color: var(--accent-color);">${heroData.text_en || 'of light and dark'}</span></span>
+                        <span class="lang-en" hidden>${heroData.title_en || 'Stories on the edge'} <span style="color: var(--accent-color);">${heroData.text_en || 'of light and dark'}</span></span><span class="lang-uk" hidden>${heroData.title_uk || 'Історії на межі'} <span style="color: var(--accent-color);">${heroData.text_uk || 'світла й темряви'}</span></span>
                     `;
 
                     const subtitleContainer = document.getElementById('hero-subtitle');
                     if (subtitleContainer) {
                         subtitleContainer.innerHTML = `
                             <span class="lang-ru">${heroData.subline_ru || 'Добро пожаловать в творческую мастерскую Эрика Норта. Романы, рассказы и лор вселенной от первого лица.'}</span>
-                            <span class="lang-en" hidden>${heroData.subline_en || "Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand."}</span>
+                            <span class="lang-en" hidden>${heroData.subline_en || "Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand."}</span><span class="lang-uk" hidden>${heroData.subline_uk || "Ласкаво просимо до творчої майстерні Еріка Норта. Романи, оповідання та лор всесвіту з перших вуст."}</span>
                         `;
                     }
                 }
@@ -444,6 +444,11 @@
                                         <h2 class="promo-title">${promo.title_en}</h2>
                                         <p class="promo-text">${promo.text_en}</p>
                                         <a href="${promo.link}" class="btn-primary">${promo.btn_text_en} <i class="fa-solid fa-arrow-right"></i></a>
+                                    </div>
+                                    <div class="lang-uk" hidden>
+                                        <h2 class="promo-title">${promo.title_uk}</h2>
+                                        <p class="promo-text">${promo.text_uk}</p>
+                                        <a href="${promo.link}" class="btn-primary">${promo.btn_text_uk} <i class="fa-solid fa-arrow-right"></i></a>
                                     </div>
                                 </div>
                             </div>

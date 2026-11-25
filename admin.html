@@ -85,6 +85,7 @@
     .input:focus { border-color: var(--accent); }
     textarea.input { min-height: 90px; resize: vertical; line-height: 1.5; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 18px; }
     .check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 500; }
     .check input { width: 18px; height: 18px; accent-color: var(--accent); }
     .img-field { display: flex; gap: 14px; align-items: flex-start; }
@@ -114,7 +115,7 @@
         .nav-item { width: auto; }
         .sidebar .spacer, .sidebar .who { display: none; }
         .main { padding: 20px 14px 60px; }
-        .grid-2 { grid-template-columns: 1fr; }
+        .grid-2, .grid-3 { grid-template-columns: 1fr; }
         .img-field { flex-direction: column; }
     }
 </style>
@@ -472,13 +473,13 @@ async function openForm(section, row, all, ctx = {}) {
     const top = el('div', { class: 'form-top' });
     if (hasI18n) {
         const tabs = el('div', { class: 'lang-tabs' });
-        ['ru', 'en'].forEach(l => tabs.append(el('button', { type: 'button', 'data-l': l, class: state.editLang === l ? 'active' : '', text: l === 'ru' ? 'Русский' : 'English', onclick: () => setEditLang(l) })));
-        top.append(tabs, el('div', { class: 'hint', text: 'Если английский текст пуст, на сайте покажется русский.' }));
+        ['ru', 'en', 'uk'].forEach(l => tabs.append(el('button', { type: 'button', 'data-l': l, class: state.editLang === l ? 'active' : '', text: { ru: 'Русский', en: 'English', uk: 'Українська' }[l], onclick: () => setEditLang(l) })));
+        top.append(tabs, el('div', { class: 'hint', text: 'Пустой English → на сайте покажется русский текст. Пустая «Українська» → покажется английский.' }));
         form.append(top);
     }
     const getters = [];
     fields.forEach(f => {
-        if (f.i18n) ['ru', 'en'].forEach(l => getters.push(renderField(form, f, row, l, isNew)));
+        if (f.i18n) ['ru', 'en', 'uk'].forEach(l => getters.push(renderField(form, f, row, l, isNew)));
         else getters.push(renderField(form, f, row, null, isNew));
     });
     const bottom = el('div', { class: 'form-bottom' });
@@ -737,18 +738,21 @@ async function renderSettings() {
                     el('button', { class: 'btn btn-icon', type: 'button', disabled: i === 0, onclick: () => { [site.home_cards[i - 1], site.home_cards[i]] = [site.home_cards[i], site.home_cards[i - 1]]; drawCards(); } }, el('i', { class: 'fa-solid fa-arrow-up' })),
                     el('button', { class: 'btn btn-icon', type: 'button', disabled: i === site.home_cards.length - 1, onclick: () => { [site.home_cards[i + 1], site.home_cards[i]] = [site.home_cards[i], site.home_cards[i + 1]]; drawCards(); } }, el('i', { class: 'fa-solid fa-arrow-down' })),
                     el('button', { class: 'btn btn-icon btn-danger', type: 'button', onclick: () => { if (confirm('Удалить карточку?')) { site.home_cards.splice(i, 1); drawCards(); } } }, el('i', { class: 'fa-solid fa-trash' }))])]),
-                el('div', { class: 'grid-2' }, [
+                el('div', { class: 'grid-3' }, [
                     el('div', { class: 'field' }, [el('label', { text: 'Заголовок RU' }), textIn(c, 'title_ru')]),
                     el('div', { class: 'field' }, [el('label', { text: 'Заголовок EN' }), textIn(c, 'title_en')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Заголовок UK' }), textIn(c, 'title_uk')]),
                     el('div', { class: 'field' }, [el('label', { text: 'Подпись RU' }), textIn(c, 'desc_ru')]),
                     el('div', { class: 'field' }, [el('label', { text: 'Подпись EN' }), textIn(c, 'desc_en')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Подпись UK' }), textIn(c, 'desc_uk')])]),
+                el('div', { class: 'grid-2' }, [
                     el('div', { class: 'field' }, [el('label', { text: 'Куда ведёт' }), link]),
                     el('div', { class: 'field' }, [el('label', { text: 'Иконка' }), el('div', { class: 'inline' }, [iconPrev, sel])])]),
                 el('label', { class: 'check' }, [hid, 'Скрыть карточку'])]));
         });
     };
     drawCards();
-    form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.home_cards.push({ icon: ICONS[0], title_ru: '', title_en: '', desc_ru: '', desc_en: '', link: '' }); drawCards(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить карточку']));
+    form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.home_cards.push({ icon: ICONS[0], title_ru: '', title_en: '', title_uk: '', desc_ru: '', desc_en: '', desc_uk: '', link: '' }); drawCards(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить карточку']));
 
     // Контакты
     const ct = site.contact;
@@ -756,11 +760,13 @@ async function renderSettings() {
     const en = el('input', { type: 'checkbox' }); en.checked = ct.enabled !== false; en.onchange = () => ct.enabled = en.checked;
     form.append(el('div', { class: 'field' }, el('label', { class: 'check' }, [en, 'Показывать форму обратной связи'])));
     const ta = (k) => { const t = el('textarea', { class: 'input' }); t.value = ct[k] || ''; t.oninput = () => ct[k] = t.value; return t; };
-    form.append(el('div', { class: 'grid-2' }, [
+    form.append(el('div', { class: 'grid-3' }, [
         el('div', { class: 'field' }, [el('label', { text: 'Заголовок RU' }), textIn(ct, 'title_ru')]),
         el('div', { class: 'field' }, [el('label', { text: 'Заголовок EN' }), textIn(ct, 'title_en')]),
+        el('div', { class: 'field' }, [el('label', { text: 'Заголовок UK' }), textIn(ct, 'title_uk')]),
         el('div', { class: 'field' }, [el('label', { text: 'Текст RU' }), ta('desc_ru')]),
-        el('div', { class: 'field' }, [el('label', { text: 'Текст EN' }), ta('desc_en')])]));
+        el('div', { class: 'field' }, [el('label', { text: 'Текст EN' }), ta('desc_en')]),
+        el('div', { class: 'field' }, [el('label', { text: 'Текст UK' }), ta('desc_uk')])]));
     form.append(el('div', { class: 'hint', html: 'Сообщения из формы приходят в Netlify: проект ericnorth → <b>Forms</b>. Там же можно включить уведомления на почту.' }));
 
     form.append(el('div', { class: 'form-bottom' }, el('div', { class: 'left' }, el('button', { class: 'btn btn-primary', type: 'submit' }, [el('i', { class: 'fa-solid fa-floppy-disk' }), 'Сохранить настройки']))));
