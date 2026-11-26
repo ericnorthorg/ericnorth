@@ -213,7 +213,7 @@ function applySettings() {
     }
 
     const contact = site.contact;
-    const contactSection = document.querySelector('.contact-section');
+    const contactSection = document.querySelector('.contact-section:not(.blk-contact)');
     if (contactSection && contact) {
         contactSection.style.display = contact.enabled === false ? 'none' : '';
         if (typeof translations !== 'undefined') {

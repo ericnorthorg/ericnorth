@@ -53,7 +53,7 @@ const Blocks = (() => {
         send: { ru: 'Отправить сообщение', en: 'Send message', uk: 'Надіслати повідомлення' },
     };
     // Блоки с данными сайта ждут загрузки cms.js (событие db-ready)
-    const state = { dataReady: false };
+    const state = { dataReady: false, preview: false };
     const dataBlock = html => state.dataReady ? html : `<div class="blk-loading">${tr(UI.loading)}</div>`;
     const plain = (h, n) => { const t = String(h || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t; };
     const trPlain = (obj, n) => LANGS.map(l => `<span class="lang-${l}"${l === 'ru' ? '' : ' hidden'}>${esc(plain(pick(obj, l), n))}</span>`).join('');
@@ -108,7 +108,7 @@ const Blocks = (() => {
         cards(b) {
             const items = (b.items || []).filter(c => c && (anyText(c.title) || c.link));
             if (!items.length) return '';
-            return `<section class="blk-cards">
+            return `<section class="blk-cards${b.overlap ? ' blk-overlap' : ''}">
                 ${anyText(b.title) ? `<h2 class="blk-title blk-center">${tr(b.title)}</h2>` : ''}
                 <div class="featured-cards-container blk-cards-grid" style="--blk-cols:${Math.min(items.length, 4)}">
                 ${items.map(c => `<a href="${safeUrl(c.link || '#')}"${target(c.link)} class="link-card">
@@ -225,6 +225,23 @@ const Blocks = (() => {
             return `<div class="blk-divider blk-divider-${b.style === 'space' ? 'space' : b.style === 'dots' ? 'dots' : 'line'}" style="padding:${size}px 20px">${inner}</div>`;
         },
 
+        // «Вы остановились на…» — для тех, кто уже читал книгу на сайте
+        continue_reading(b) {
+            if (!state.dataReady) return '';
+            let bookId = null, num = null;
+            try { bookId = localStorage.getItem('lastReadBook'); num = localStorage.getItem('lastReadChapter'); } catch (e) { }
+            if (!bookId || !num) return '';
+            const book = (typeof booksDB === 'object' && Array.isArray(booksDB) ? booksDB : []).find(x => x.id === bookId);
+            const ch = (typeof chaptersDB === 'object' && Array.isArray(chaptersDB) ? chaptersDB : []).find(c => c.book_id === bookId && parseInt(c.chapter_num, 10) === parseInt(num, 10));
+            if (!book || !ch) return '';
+            const label = { ru: 'Вы остановились на:', en: 'You left off at:', uk: 'Ви зупинилися на:' };
+            const btn = { ru: 'Продолжить чтение', en: 'Continue Reading', uk: 'Продовжити читання' };
+            const name = {}; LANGS.forEach(l => name[l] = `${pick(L3(book, 'title'), l)} — ${pick(L3(ch, 'title'), l)}`);
+            return `<div class="blk-continue"><div>
+                <div class="blk-continue-label">${tr(label)}</div><h3>${tr(name)}</h3></div>
+                <a class="btn-primary" href="reader.html?book=${encodeURIComponent(bookId)}&chapter=${encodeURIComponent(num)}">${tr(btn)} <i class="fa-solid fa-book-open"></i></a></div>`;
+        },
+
         contact(b) {
             const ph = (key) => LANGS.map(l => `data-ph-${l}="${esc(pick(UI[key], l))}"`).join(' ');
             return `<section class="contact-section blk-contact"><div class="contact-container">
@@ -262,7 +279,23 @@ const Blocks = (() => {
     function applyLang(root, lang) {
         (root || document).querySelectorAll('.blk-ph').forEach(i => { const v = i.getAttribute('data-ph-' + lang); if (v) i.placeholder = v; });
     }
-    const DATA_TYPES = ['posts_feed', 'books', 'book_toc', 'notes_feed', 'projects'];
+    const DATA_TYPES = ['posts_feed', 'books', 'book_toc', 'notes_feed', 'projects', 'continue_reading'];
+
+    // Галерея: просмотр картинки поверх страницы (кроме предпросмотра в админке)
+    document.addEventListener('click', e => {
+        const a = e.target.closest && e.target.closest('.blk-zoom');
+        if (!a || state.preview || e.ctrlKey || e.metaKey) return;
+        e.preventDefault();
+        const box = document.createElement('div');
+        box.className = 'blk-lightbox';
+        const img = document.createElement('img'); img.src = a.getAttribute('href'); img.alt = '';
+        box.appendChild(img);
+        const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
+        const onKey = ev => { if (ev.key === 'Escape') close(); };
+        box.addEventListener('click', close);
+        document.addEventListener('keydown', onKey);
+        document.body.appendChild(box);
+    });
     const needsData = blocks => (blocks || []).some(b => b && !b.hidden && DATA_TYPES.includes(b.type));
 
     return { render, pick, tr, esc, TYPES, LANGS, state, needsData, applyLang, videoEmbed };

@@ -110,8 +110,16 @@
         @media (max-width: 768px) { .nav-container { flex-direction: column; gap: 15px; } .footer-container { flex-direction: column; gap: 20px; text-align: center; } .hero-title-large { font-size: 2.5rem; } .hero-subtitle { font-size: 1.1rem; } .featured-cards-container { grid-template-columns: 1fr; margin-top: 0; padding-top: 20px; } .form-row { flex-direction: column; gap: 20px; } .contact-container { padding: 30px 20px; border-radius: 0; border-left: none; border-right: none; } }
         @media (max-width: 768px) { .main-menu { flex-wrap: wrap; justify-content: center; gap: 10px 22px; } }
     </style>
+    <link rel="stylesheet" href="blocks.css">
+    <style>
+        /* Главная из блоков (включается в админке: Страницы → Главная) */
+        #home-blocks { display: none; }
+        html.home-blocks #home-blocks { display: block; }
+        html.home-blocks main > :not(#home-blocks) { display: none !important; }
+    </style>
 
     <script>
+        try { if (localStorage.getItem('homeMode') === 'blocks' && localStorage.getItem('homePage')) document.documentElement.classList.add('home-blocks'); } catch (e) { }
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
@@ -164,6 +172,7 @@
     </header>
 
     <main>
+        <div id="home-blocks"></div>
         <div class="hero-section" id="hero-section">
             <div class="hero-overlay"></div>
             <div class="hero-content">
@@ -266,6 +275,7 @@
 
     <script src="i18n.js"></script>
     <script src="cms.js"></script>
+    <script src="blocks.js"></script>
     <script src="search.js"></script>
 
     <script>
@@ -459,6 +469,41 @@
                 setLanguage(currentLang);
             }
         });
+
+        // --- Главная из блоков ---
+        // Режим хранится в настройках (settings.home.mode). Если включены блоки и страница
+        // «home» опубликована — показываем её вместо классической главной. Иначе всё как раньше.
+        (function () {
+            const box = document.getElementById('home-blocks');
+            const baseSetLanguage = setLanguage;
+            setLanguage = function (lang) { baseSetLanguage(lang); Blocks.applyLang(box, lang); };
+            function showBlocks(content) {
+                box.innerHTML = Blocks.render(content.blocks);
+                document.documentElement.classList.add('home-blocks');
+                setLanguage(currentLang);
+                if (typeof localizeLinks === 'function') localizeLinks();
+            }
+            function showClassic() {
+                document.documentElement.classList.remove('home-blocks');
+                box.innerHTML = '';
+                try { localStorage.removeItem('homeMode'); localStorage.removeItem('homePage'); } catch (e) { }
+            }
+            let cached = null;
+            try { if (localStorage.getItem('homeMode') === 'blocks') cached = JSON.parse(localStorage.getItem('homePage') || 'null'); } catch (e) { }
+            if (cached && cached.blocks) showBlocks(cached);
+            const pageReq = fetch(`${SUPABASE_URL}/rest/v1/pages?select=published&slug=eq.home&published=not.is.null`, { headers: { apikey: SUPABASE_KEY } })
+                .then(r => r.ok ? r.json() : null).catch(() => null);
+            document.addEventListener('db-ready', async () => {
+                Blocks.state.dataReady = true;
+                const mode = ((typeof siteSettings !== 'undefined' && siteSettings.home) || {}).mode;
+                if (mode !== 'blocks') { showClassic(); return; }
+                const rows = await pageReq;
+                const content = rows && rows[0] && rows[0].published;
+                if (!content || !Array.isArray(content.blocks)) { if (rows) showClassic(); return; }
+                showBlocks(content);
+                try { localStorage.setItem('homeMode', 'blocks'); localStorage.setItem('homePage', JSON.stringify(content)); } catch (e) { }
+            });
+        })();
     </script>
 </body>
 </html>
