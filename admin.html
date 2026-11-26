@@ -57,6 +57,7 @@
     .page-head .sub { color: var(--muted); font-size: .9rem; margin-top: 4px; font-family: 'Inter', sans-serif; }
 
     /* Список */
+    .list-search { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
     .list { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
     .row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
     .row:last-child { border-bottom: none; }
@@ -518,6 +519,38 @@ async function loadLinkSuggestions() {
 }
 
 /* ---------- СПИСОК ---------- */
+/* ---------- ПОИСК В СПИСКАХ ---------- */
+// Строка поиска (и при необходимости фильтры) над списком. Запрос запоминается по разделу,
+// поэтому после возврата из формы список остаётся отфильтрованным.
+state.search = state.search || {};
+const normText = v => String(v ?? '').toLowerCase().replace(/ё/g, 'е');
+const searchCache = new WeakMap();
+function searchText(r) {
+    // Всё текстовое в записи: заголовки, подписи, id, тексты (без HTML-тегов)
+    if (!searchCache.has(r)) searchCache.set(r, normText(Object.entries(r).filter(([k, v]) => typeof v === 'string' && !/^(image|cover|link|link_buy|link_read)$/.test(k))
+        .map(([, v]) => v.includes('<') ? stripHtml(v) : v).join(' \n ')));
+    return searchCache.get(r);
+}
+function listSearchBar(key, { placeholder = 'Поиск…', filters = [], onChange }) {
+    const st = state.search[key] = state.search[key] || { q: '', f: {} };
+    const inp = el('input', { class: 'input', type: 'search', placeholder, value: st.q, style: 'flex:1;min-width:200px;max-width:420px' });
+    const count = el('span', { class: 'hint', style: 'margin:0;white-space:nowrap' });
+    let t; inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { st.q = inp.value; onChange(); }, 120); });
+    const sels = filters.map(f => {
+        const sel = el('select', { class: 'input', style: 'width:auto' });
+        f.options.forEach(([v, l]) => sel.append(el('option', { value: v, text: l, selected: (st.f[f.key] || '') === v })));
+        sel.addEventListener('change', () => { st.f[f.key] = sel.value; onChange(); });
+        return sel;
+    });
+    const bar = el('div', { class: 'list-search' }, [el('i', { class: 'fa-solid fa-magnifying-glass', style: 'color:var(--muted)' }), inp, ...sels, count]);
+    return {
+        bar, count,
+        active: () => !!(st.q.trim() || Object.values(st.f).some(Boolean)),
+        match: (r, textFn = searchText) => { const words = normText(st.q).split(/\s+/).filter(Boolean); const tx = textFn(r); return words.every(w => tx.includes(w)); },
+        filter: k => st.f[k] || '',
+    };
+}
+
 async function renderList(section, opts = {}) {
     const s = SECTIONS[section], main = $('#main');
     main.innerHTML = '<div class="loading">Загрузка…</div>';
@@ -531,18 +564,38 @@ async function renderList(section, opts = {}) {
     const add = el('button', { class: 'btn btn-primary', onclick: () => openForm(section, null, data) }, [el('i', { class: 'fa-solid fa-plus' }), s.addLabel]);
     main.append(el('div', { class: 'page-head' }, [el('div', {}, [el('h2', { text: s.title }), el('div', { class: 'sub', text: s.sub || '' })]), add]));
     const list = el('div', { class: 'list' });
-    if (!data.length) list.append(el('div', { class: 'empty', text: 'Пока пусто' }));
-    data.forEach((r, i) => list.append(listRow(section, r, i, data)));
+    // Поиск и фильтры: по видимости, для постов — ещё по рубрике и отложенным
+    const filters = [];
+    if (section === 'posts') filters.push({ key: 'cat', options: [['', 'Все рубрики'], ...postCategoryOptions()] });
+    if (data.some(r => 'hidden' in r)) filters.push({ key: 'vis', options: [['', 'Все'], ['shown', 'Видимые'], ['hidden', 'Скрытые'], ...(section === 'posts' ? [['scheduled', 'Отложенные']] : [])] });
+    const search = listSearchBar(section, { placeholder: s.searchHint || 'Поиск по названию и тексту…', filters, onChange: draw });
+    const note = el('div', { class: 'hint', style: 'margin:-6px 0 10px' });
+    function draw() {
+        const vis = search.filter('vis'), cat = search.filter('cat');
+        const shown = data.map((r, i) => [r, i]).filter(([r]) =>
+            (!cat || r.category === cat) &&
+            (!vis || (vis === 'hidden' ? r.hidden : vis === 'shown' ? !r.hidden && !isScheduled(r) : vis === 'scheduled' ? isScheduled(r) : true)) &&
+            search.match(r));
+        list.innerHTML = '';
+        if (!data.length) list.append(el('div', { class: 'empty', text: 'Пока пусто' }));
+        else if (!shown.length) list.append(el('div', { class: 'empty', text: 'Ничего не найдено' }));
+        // Пока включён поиск, стрелки порядка спрятаны — двигать записи удобно только в полном списке
+        shown.forEach(([r, i]) => list.append(listRow(section, r, i, data, search.active())));
+        search.count.textContent = search.active() ? `найдено ${shown.length} из ${data.length}` : `всего ${data.length}`;
+        note.textContent = search.active() && s.ordered ? 'Чтобы менять порядок стрелками, очистите поиск и фильтры.' : '';
+    }
+    if (data.length > 0) main.append(search.bar, note);
     main.append(list);
+    draw();
 }
-function listRow(section, r, i, all) {
+function listRow(section, r, i, all, noMove) {
     const s = SECTIONS[section];
     const badges = [];
     if (s.rowBadge && s.rowBadge(r)) badges.push(el('span', { class: 'badge accent', text: s.rowBadge(r) }));
     if (r.hidden) badges.push(el('span', { class: 'badge hidden-b', text: 'скрыто' }));
     const img = s.rowImage ? (s.rowImage(r) ? el('img', { class: 'thumb', src: s.rowImage(r), alt: '', loading: 'lazy' }) : el('div', { class: 'thumb' })) : null;
     const actions = el('div', { class: 'actions' });
-    if (s.ordered) {
+    if (s.ordered && !noMove) {
         actions.append(
             el('button', { class: 'btn btn-icon', title: 'Выше', disabled: i === 0, onclick: () => move(section, all, i, -1) }, el('i', { class: 'fa-solid fa-arrow-up' })),
             el('button', { class: 'btn btn-icon', title: 'Ниже', disabled: i === all.length - 1, onclick: () => move(section, all, i, 1) }, el('i', { class: 'fa-solid fa-arrow-down' })));
@@ -796,12 +849,21 @@ async function renderChaptersBlock(main, book) {
         el('h3', { text: `Главы (${data.length})` }),
         el('button', { class: 'btn btn-primary', type: 'button', onclick: () => openChapter(null) }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить главу'])]));
     const list = el('div', { class: 'list' });
+    const search = listSearchBar('chapters:' + book.id, { placeholder: 'Поиск главы по номеру или названию…', onChange: () => draw() });
+    if (data.length > 5) box.append(search.bar);
+    const draw = () => {
+    list.innerHTML = '';
+    const shown = data.filter(c => search.match(c, c => normText(`${c.chapter_num} ${c.title_ru || ''} ${c.title_en || ''}`)));
+    search.count.textContent = search.active() ? `найдено ${shown.length} из ${data.length}` : '';
     if (!data.length) list.append(el('div', { class: 'empty', text: 'Глав пока нет' }));
-    data.forEach(c => list.append(el('div', { class: 'row' }, [
+    else if (!shown.length) list.append(el('div', { class: 'empty', text: 'Ничего не найдено' }));
+    shown.forEach(c => list.append(el('div', { class: 'row' }, [
         el('div', { class: 'info', onclick: () => openChapter(c) }, [
             el('div', { class: 'title' }, [document.createTextNode(c.title_ru || `Глава ${c.chapter_num}`), c.hidden ? el('span', { class: 'badge hidden-b', text: 'скрыто' }) : null]),
             el('div', { class: 'meta', text: `№ ${c.chapter_num} · read/${book.id}/${c.chapter_num}` })]),
         el('div', { class: 'actions' }, el('button', { class: 'btn btn-icon', type: 'button', onclick: () => openChapter(c) }, el('i', { class: 'fa-solid fa-pen' })))])));
+    };
+    draw();
     box.append(list);
 }
 

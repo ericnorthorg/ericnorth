@@ -32,9 +32,18 @@ async function renderComments() {
         el('button', { type: 'button', class: CM.filter === k ? 'active' : '', text: t, onclick: () => { CM.filter = k; renderComments(); } })));
     main.append(tabs);
     const list = el('div', { class: 'cm-list' });
-    if (!data.length) list.append(el('div', { class: 'empty', text: CM.filter === 'pending' ? 'Новых комментариев нет' : 'Пусто' }));
-    data.forEach(c => list.append(commentCard(c, titles[c.post_id] || c.post_id)));
+    const search = listSearchBar('comments', { placeholder: 'Поиск по имени, email, тексту или посту…', onChange: () => draw() });
+    const draw = () => {
+        list.innerHTML = '';
+        const shown = data.filter(c => search.match(c, c => normText(`${c.name} ${c.email || ''} ${c.body} ${c.admin_reply || ''} ${titles[c.post_id] || c.post_id}`)));
+        search.count.textContent = search.active() ? `найдено ${shown.length} из ${data.length}` : '';
+        if (!data.length) list.append(el('div', { class: 'empty', text: CM.filter === 'pending' ? 'Новых комментариев нет' : 'Пусто' }));
+        else if (!shown.length) list.append(el('div', { class: 'empty', text: 'Ничего не найдено' }));
+        shown.forEach(c => list.append(commentCard(c, titles[c.post_id] || c.post_id)));
+    };
+    if (data.length) main.append(search.bar);
     main.append(list);
+    draw();
     updateCommentsBadge();
 }
 

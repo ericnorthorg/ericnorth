@@ -92,8 +92,14 @@ async function renderPages() {
         el('div', {}, [el('h2', { text: 'Страницы' }), el('div', { class: 'sub', text: 'Собственные страницы сайта из блоков: «Об авторе», «Мир», «Персонажи» и любые другие. Адрес страницы — /p/название.' })]),
         el('button', { class: 'btn btn-primary', onclick: peCreateDialog }, [el('i', { class: 'fa-solid fa-plus' }), 'Новая страница'])]));
     const list = el('div', { class: 'list' });
+    const search = listSearchBar('pages', { placeholder: 'Поиск страницы по названию или адресу…', onChange: () => drawPages() });
+    const drawPages = () => {
+    list.innerHTML = '';
+    const shown = data.filter(p => search.match(p, p => normText(`${p.slug} ${['ru', 'en', 'uk'].map(l => ((p.draft || {}).title || {})[l] || '').join(' ')}`)));
+    search.count.textContent = search.active() ? `найдено ${shown.length} из ${data.length}` : '';
     if (!data.length) list.append(el('div', { class: 'empty', text: 'Страниц пока нет' }));
-    data.forEach(p => {
+    else if (!shown.length) list.append(el('div', { class: 'empty', text: 'Ничего не найдено' }));
+    shown.forEach(p => {
         const status = !p.published ? ['Черновик', 'hidden-b'] : !peSame(p.draft, p.published) ? ['Есть неопубликованные изменения', 'accent'] : ['Опубликована', ''];
         list.append(el('div', { class: 'row' }, [
             el('div', { class: 'info', onclick: () => peOpen(p.id) }, [
@@ -103,8 +109,12 @@ async function renderPages() {
                 p.published ? el('a', { class: 'btn btn-icon', href: `/ru/p/${p.slug}`, target: '_blank', title: 'Открыть на сайте' }, el('i', { class: 'fa-solid fa-eye' })) : null,
                 el('button', { class: 'btn btn-icon', title: 'Редактировать', onclick: () => peOpen(p.id) }, el('i', { class: 'fa-solid fa-pen' }))])]));
     });
+    };
+    drawPages();
     main.querySelector('.page-head').after(peHomePanel(home, homeMode));
-    main.append(el('h3', { style: 'margin:26px 0 12px;font-family:Merriweather,serif', text: 'Другие страницы' }), list);
+    main.append(el('h3', { style: 'margin:26px 0 12px;font-family:Merriweather,serif', text: 'Другие страницы' }));
+    if (data.length > 5) main.append(search.bar);
+    main.append(list);
 }
 
 /* ---------- ГЛАВНАЯ ИЗ БЛОКОВ ---------- */
