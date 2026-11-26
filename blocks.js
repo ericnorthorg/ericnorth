@@ -39,6 +39,38 @@ const Blocks = (() => {
         return `<a href="${safeUrl(b.link)}"${target(b.link)} class="${primary ? 'btn-primary' : 'btn-secondary'}">${tr(b.label)} <i class="fa-solid fa-arrow-right"></i></a>`;
     }
 
+    // Поля из данных сайта (cms.js) хранятся как title_ru/title_en/title_uk
+    const L3 = (o, f) => ({ ru: o && o[f + '_ru'], en: o && o[f + '_en'], uk: o && o[f + '_uk'] });
+    const UI = {
+        read: { ru: 'Читать', en: 'Read', uk: 'Читати' },
+        buy: { ru: 'Купить', en: 'Buy', uk: 'Купити' },
+        chapter: { ru: 'Глава', en: 'Chapter', uk: 'Розділ' },
+        loading: { ru: 'Загрузка…', en: 'Loading…', uk: 'Завантаження…' },
+        empty: { ru: 'Пока пусто', en: 'Nothing here yet', uk: 'Поки порожньо' },
+        name: { ru: 'Ваше имя', en: 'Your name', uk: "Ваше ім'я" },
+        email: { ru: 'Ваш Email', en: 'Your email', uk: 'Ваш email' },
+        message: { ru: 'Ваше сообщение…', en: 'Your message…', uk: 'Ваше повідомлення…' },
+        send: { ru: 'Отправить сообщение', en: 'Send message', uk: 'Надіслати повідомлення' },
+    };
+    // Блоки с данными сайта ждут загрузки cms.js (событие db-ready)
+    const state = { dataReady: false };
+    const dataBlock = html => state.dataReady ? html : `<div class="blk-loading">${tr(UI.loading)}</div>`;
+    const plain = (h, n) => { const t = String(h || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t; };
+    const trPlain = (obj, n) => LANGS.map(l => `<span class="lang-${l}"${l === 'ru' ? '' : ' hidden'}>${esc(plain(pick(obj, l), n))}</span>`).join('');
+    const titleH2 = b => anyText(b.title) ? `<h2 class="blk-title blk-center">${tr(b.title)}</h2>` : '';
+    const num = (v, def, min, max) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : def; };
+
+    // Ссылка на видео → адрес для встраивания
+    function videoEmbed(url) {
+        const u = String(url || '').trim();
+        let m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/);
+        if (m) return { kind: 'frame', src: `https://www.youtube-nocookie.com/embed/${m[1]}` };
+        m = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+        if (m) return { kind: 'frame', src: `https://player.vimeo.com/video/${m[1]}` };
+        if (/^https?:\/\/.+\.(mp4|webm|ogg)(\?.*)?$/i.test(u)) return { kind: 'file', src: u };
+        return null;
+    }
+
     // --- Типы блоков ---
     const TYPES = {
         hero(b) {
@@ -95,6 +127,116 @@ const Blocks = (() => {
                 <blockquote>${tr(b.text)}</blockquote>
                 ${anyText(b.author) ? `<cite>— ${tr(b.author)}</cite>` : ''}
             </section>`;
+        },
+
+        gallery(b) {
+            const imgs = (b.images || []).filter(x => x && x.src);
+            if (!imgs.length) return '';
+            return `<section class="blk-gallery">${titleH2(b)}
+                <div class="blk-gallery-grid" style="--blk-cols:${num(b.cols, 3, 2, 4)}">
+                ${imgs.map(x => `<figure><a href="${safeUrl(x.src)}" class="blk-zoom" target="_blank" rel="noopener"><img src="${safeUrl(x.src)}" alt="${esc(pick(x.caption, 'en'))}" loading="lazy"></a>
+                    ${anyText(x.caption) ? `<figcaption>${tr(x.caption)}</figcaption>` : ''}</figure>`).join('')}
+                </div></section>`;
+        },
+
+        video(b) {
+            const v = videoEmbed(b.url);
+            if (!v) return '';
+            const player = v.kind === 'frame'
+                ? `<iframe src="${safeUrl(v.src)}" title="${esc(pick(b.title, 'en') || 'Video')}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`
+                : `<video src="${safeUrl(v.src)}" controls preload="metadata"></video>`;
+            return `<section class="blk-video">${titleH2(b)}<div class="blk-video-frame">${player}</div>
+                ${anyText(b.caption) ? `<p class="blk-caption">${tr(b.caption)}</p>` : ''}</section>`;
+        },
+
+        posts_feed(b) {
+            return `<section class="blk-feed">${titleH2(b)}${dataBlock((() => {
+                const posts = Object.entries(typeof postsDB === 'object' ? postsDB : {}).filter(([id, p]) => !p.hidden && id !== 'featured').slice(0, num(b.count, 3, 1, 12));
+                if (!posts.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
+                return `<div class="blk-feed-grid">${posts.map(([id, p]) => `<a class="blk-post" href="posts.html?id=${encodeURIComponent(id)}">
+                    ${p.image ? `<img src="${safeUrl(p.image)}" alt="${esc(p.title_en || p.title_ru)}" loading="lazy">` : ''}
+                    <div class="blk-post-body"><h3>${tr(L3(p, 'title'))}</h3><p>${trPlain(L3(p, 'body'), 120)}</p>
+                    <span class="blk-more">${tr(UI.read)} <i class="fa-solid fa-arrow-right"></i></span></div></a>`).join('')}</div>`;
+            })())}${b.button && b.button.link && anyText(b.button.label) ? `<div class="blk-buttons">${button(b.button)}</div>` : ''}</section>`;
+        },
+
+        books(b) {
+            return `<section class="blk-books">${titleH2(b)}${dataBlock((() => {
+                const want = String(b.ids || '').split(',').map(x => x.trim()).filter(Boolean);
+                const all = typeof booksDB === 'object' && Array.isArray(booksDB) ? booksDB : [];
+                const list = want.length ? want.map(id => all.find(x => x.id === id)).filter(Boolean) : all;
+                if (!list.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
+                return list.map(k => {
+                    const read = k.link_read || `reader.html?book=${encodeURIComponent(k.id)}&chapter=1`;
+                    return `<div class="blk-book">
+                        ${k.cover ? `<img src="${safeUrl(k.cover)}" alt="${esc(k.title_en || k.title_ru)}" loading="lazy">` : ''}
+                        <div><h3>${tr(L3(k, 'title'))}</h3><div class="blk-prose">${tr(L3(k, 'desc'), { tag: 'div', html: true })}</div>
+                        <div class="blk-buttons blk-left"><a class="btn-primary" href="${safeUrl(read)}"${target(read)}>${tr(UI.read)} <i class="fa-solid fa-book-open"></i></a>
+                        ${k.link_buy ? `<a class="btn-secondary" href="${safeUrl(k.link_buy)}"${target(k.link_buy)}>${tr(UI.buy)} <i class="fa-solid fa-cart-shopping"></i></a>` : ''}</div></div></div>`;
+                }).join('');
+            })())}</section>`;
+        },
+
+        book_toc(b) {
+            if (!b.book_id) return '';
+            return `<section class="blk-toc">${titleH2(b)}${dataBlock((() => {
+                const ch = (typeof chaptersDB === 'object' && Array.isArray(chaptersDB) ? chaptersDB : []).filter(c => c.book_id === b.book_id && !c.hidden)
+                    .sort((x, y) => parseFloat(x.chapter_num) - parseFloat(y.chapter_num));
+                if (!ch.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
+                return `<ol class="blk-toc-list">${ch.map(c => `<li><a href="reader.html?book=${encodeURIComponent(b.book_id)}&chapter=${encodeURIComponent(c.chapter_num)}">
+                    <span class="blk-toc-num">${tr(UI.chapter)} ${esc(c.chapter_num)}</span><span class="blk-toc-title">${tr(L3(c, 'title'))}</span><i class="fa-solid fa-arrow-right"></i></a></li>`).join('')}</ol>`;
+            })())}</section>`;
+        },
+
+        notes_feed(b) {
+            return `<section class="blk-notes">${titleH2(b)}${dataBlock((() => {
+                const notes = (typeof notesDB === 'object' && Array.isArray(notesDB) ? notesDB.slice().reverse() : []).slice(0, num(b.count, 3, 1, 12));
+                if (!notes.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
+                return notes.map(n => `<article class="blk-note"><div class="blk-note-date">${tr(L3(n, 'date'))}</div>
+                    ${anyText(L3(n, 'title')) ? `<h3>${tr(L3(n, 'title'))}</h3>` : ''}<div class="blk-prose">${tr(L3(n, 'text'), { tag: 'div', html: true })}</div></article>`).join('');
+            })())}</section>`;
+        },
+
+        projects(b) {
+            return `<section class="blk-projects">${titleH2(b)}${dataBlock((() => {
+                const list = typeof projectsDB === 'object' && Array.isArray(projectsDB) ? projectsDB : [];
+                if (!list.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
+                return `<div class="blk-projects-grid">${list.map(p => {
+                    const pr = num(p.progress, 0, 0, 100);
+                    return `<div class="blk-project"><span class="blk-status">${tr(L3(p, 'status'))}</span><h3>${tr(L3(p, 'title'))}</h3>
+                        <div class="blk-prose">${tr(L3(p, 'desc'), { tag: 'div', html: true })}</div>
+                        <div class="blk-progress-label">${tr({ ru: p.progressLabel_ru, en: p.progressLabel_en, uk: p.progressLabel_uk })} <b>${pr}%</b></div>
+                        <div class="blk-progress"><div style="width:${pr}%"></div></div></div>`;
+                }).join('')}</div>`;
+            })())}</section>`;
+        },
+
+        faq(b) {
+            const items = (b.items || []).filter(x => x && anyText(x.q));
+            if (!items.length) return '';
+            return `<section class="blk-faq">${titleH2(b)}${items.map(x => `<details><summary>${tr(x.q)}<i class="fa-solid fa-chevron-down"></i></summary>
+                <div class="blk-faq-a">${LANGS.map(l => `<div class="lang-${l}"${l === 'ru' ? '' : ' hidden'}>${esc(pick(x.a, l)).replace(/\n/g, '<br>')}</div>`).join('')}</div></details>`).join('')}</section>`;
+        },
+
+        divider(b) {
+            const size = { s: 20, m: 50, l: 90 }[b.size] || 50;
+            const inner = b.style === 'space' ? '' : b.style === 'dots' ? '<span>• • •</span>' : '<hr>';
+            return `<div class="blk-divider blk-divider-${b.style === 'space' ? 'space' : b.style === 'dots' ? 'dots' : 'line'}" style="padding:${size}px 20px">${inner}</div>`;
+        },
+
+        contact(b) {
+            const ph = (key) => LANGS.map(l => `data-ph-${l}="${esc(pick(UI[key], l))}"`).join(' ');
+            return `<section class="contact-section blk-contact"><div class="contact-container">
+                ${anyText(b.title) ? `<h2 class="contact-title">${tr(b.title)}</h2>` : ''}
+                ${anyText(b.desc) ? `<p class="contact-desc">${tr(b.desc)}</p>` : ''}
+                <form name="author-contact" method="POST" data-netlify="true" class="contact-form" action="/" netlify-honeypot="bot-field">
+                    <input type="hidden" name="form-name" value="author-contact"><div hidden><input name="bot-field"></div>
+                    <div class="form-row"><input type="text" name="Имя" class="contact-input blk-ph" ${ph('name')} placeholder="${esc(UI.name.ru)}" required>
+                    <input type="email" name="Email" class="contact-input blk-ph" ${ph('email')} placeholder="${esc(UI.email.ru)}" required></div>
+                    <input type="hidden" name="Тема обращения" value="${esc(b.subject || 'Page form')}">
+                    <textarea name="Сообщение" class="contact-textarea blk-ph" ${ph('message')} placeholder="${esc(UI.message.ru)}" required></textarea>
+                    <button type="submit" class="contact-submit">${tr(UI.send)}</button>
+                </form></div></section>`;
         }
     };
 
@@ -115,5 +257,12 @@ const Blocks = (() => {
         }).join('');
     }
 
-    return { render, pick, tr, esc, TYPES, LANGS };
+    // Плейсхолдеры полей формы на текущем языке
+    function applyLang(root, lang) {
+        (root || document).querySelectorAll('.blk-ph').forEach(i => { const v = i.getAttribute('data-ph-' + lang); if (v) i.placeholder = v; });
+    }
+    const DATA_TYPES = ['posts_feed', 'books', 'book_toc', 'notes_feed', 'projects'];
+    const needsData = blocks => (blocks || []).some(b => b && !b.hidden && DATA_TYPES.includes(b.type));
+
+    return { render, pick, tr, esc, TYPES, LANGS, state, needsData, applyLang, videoEmbed };
 })();

@@ -22,7 +22,38 @@ const BLOCK_TYPES = {
     quote: { label: 'Цитата', icon: 'fa-solid fa-quote-left', hint: 'Крупная цитата с автором',
         make: () => ({ text: {}, author: {} }),
         summary: b => stripHtml(Blocks.pick(b.text, 'ru')).slice(0, 70) },
+    gallery: { label: 'Галерея', icon: 'fa-regular fa-images', hint: 'Сетка картинок с подписями, открываются крупно',
+        make: () => ({ title: {}, cols: '3', images: [] }),
+        summary: b => Blocks.pick(b.title, 'ru') || `картинок: ${(b.images || []).length}` },
+    video: { label: 'Видео', icon: 'fa-brands fa-youtube', hint: 'YouTube, Vimeo или ссылка на mp4',
+        make: () => ({ url: '', title: {}, caption: {} }),
+        summary: b => Blocks.pick(b.title, 'ru') || b.url || '' },
+    divider: { label: 'Разделитель', icon: 'fa-solid fa-grip-lines', hint: 'Линия, точки или просто отступ',
+        make: () => ({ style: 'line', size: 'm' }),
+        summary: b => ({ line: 'линия', dots: 'точки', space: 'отступ' }[b.style] || 'линия') },
+    faq: { label: 'Вопросы и ответы', icon: 'fa-regular fa-circle-question', hint: 'Раскрывающийся список (FAQ)',
+        make: () => ({ title: {}, items: [{ q: {}, a: {} }] }),
+        summary: b => Blocks.pick(b.title, 'ru') || `вопросов: ${(b.items || []).length}` },
+    posts_feed: { label: 'Последние посты', icon: 'fa-solid fa-feather-pointed', hint: 'Подтягивается из раздела «Блог» автоматически',
+        make: () => ({ title: {}, count: '3', button: { label: {}, link: 'blog.html' } }),
+        summary: b => Blocks.pick(b.title, 'ru') || `${b.count || 3} шт.` },
+    books: { label: 'Книги', icon: 'fa-solid fa-book', hint: 'Обложки и описания из раздела «Книги»',
+        make: () => ({ title: {}, ids: '' }),
+        summary: b => Blocks.pick(b.title, 'ru') || (b.ids ? b.ids : 'все книги') },
+    book_toc: { label: 'Оглавление книги', icon: 'fa-solid fa-list-ol', hint: 'Список глав со ссылками на читалку',
+        make: () => ({ title: {}, book_id: (peBooks[0] || {}).id || '' }),
+        summary: b => Blocks.pick(b.title, 'ru') || ((peBooks.find(x => x.id === b.book_id) || {}).title_ru || b.book_id || '') },
+    notes_feed: { label: 'Последние заметки', icon: 'fa-regular fa-note-sticky', hint: 'Из раздела «Заметки»',
+        make: () => ({ title: {}, count: '3' }),
+        summary: b => Blocks.pick(b.title, 'ru') || `${b.count || 3} шт.` },
+    projects: { label: 'Проекты', icon: 'fa-solid fa-diagram-project', hint: 'Все проекты с прогрессом',
+        make: () => ({ title: {} }),
+        summary: b => Blocks.pick(b.title, 'ru') },
+    contact: { label: 'Форма «Написать автору»', icon: 'fa-regular fa-envelope', hint: 'Письма приходят туда же, куда и с главной (Netlify Forms)',
+        make: () => ({ title: { ru: 'Написать автору', en: 'Contact the author', uk: 'Написати автору' }, desc: {}, subject: '' }),
+        summary: b => Blocks.pick(b.title, 'ru') },
 };
+let peBooks = [];
 
 let PE = null; // состояние открытого редактора
 
@@ -98,6 +129,7 @@ async function peOpen(id) {
     const { data, error } = await sb.from('pages').select('*').eq('id', id).single();
     if (error) { toast(errText(error), 'err'); return renderPages(); }
     if (!linkSuggestions.length) loadLinkSuggestions();
+    if (!peBooks.length) { const r = await sb.from('books').select('id,title_ru').order('sort_order'); peBooks = r.data || []; }
     const d = data.draft || {};
     PE = {
         row: data,
@@ -273,6 +305,69 @@ function peBlockForm(b) {
         case 'quote':
             add(peI18nText(b, 'text', 'Цитата', { textarea: true }));
             add(peI18nText(b, 'author', 'Автор'));
+            break;
+        case 'gallery':
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            add(peSelect(b, 'cols', 'Картинок в ряд', [['3', '3'], ['2', '2'], ['4', '4']]));
+            add(peRepeater(b, 'images', 'Картинки', 40, () => ({ src: '', caption: {} }), x => [peImage(x, 'src', 'Картинка'), peI18nText(x, 'caption', 'Подпись (необязательно)')]));
+            break;
+        case 'video': {
+            const note = el('div', { class: 'hint' });
+            const check = () => { note.textContent = !b.url ? 'Вставьте ссылку на видео YouTube или Vimeo, либо прямую ссылку на файл .mp4' : Blocks.videoEmbed(b.url) ? '✓ Ссылка распознана' : '✗ Не удалось распознать ссылку — видео не покажется'; };
+            const f2 = peText(b, 'url', 'Ссылка на видео', { placeholder: 'https://www.youtube.com/watch?v=…' });
+            f2.querySelector('input').addEventListener('input', check); check(); f2.append(note);
+            add(f2);
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            add(peI18nText(b, 'caption', 'Подпись под видео (необязательно)'));
+            break;
+        }
+        case 'divider':
+            add(el('div', { class: 'grid-2' }, [
+                peSelect(b, 'style', 'Вид', [['line', 'Линия'], ['dots', 'Три точки'], ['space', 'Просто отступ']]),
+                peSelect(b, 'size', 'Высота', [['m', 'Средняя'], ['s', 'Маленькая'], ['l', 'Большая']])]));
+            break;
+        case 'faq':
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            add(peRepeater(b, 'items', 'Вопросы', 30, () => ({ q: {}, a: {} }), x => [peI18nText(x, 'q', 'Вопрос'), peI18nText(x, 'a', 'Ответ', { textarea: true })]));
+            break;
+        case 'posts_feed':
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            add(peSelect(b, 'count', 'Сколько постов показать', ['3', '6', '9', '1', '2', '4'].map(n => [n, n])));
+            b.button = b.button || { label: {}, link: '' };
+            add(peI18nText(b.button, 'label', 'Кнопка под постами (пусто — без кнопки)'));
+            add(peLink(b.button, 'link', 'Куда ведёт кнопка'));
+            add(el('div', { class: 'hint', text: 'Посты берутся из раздела «Блог» — сначала верхние в списке. Скрытые посты не показываются.' }));
+            break;
+        case 'books': {
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            const chosen = () => String(b.ids || '').split(',').map(x => x.trim()).filter(Boolean);
+            const box = el('div', { class: 'inline', style: 'flex-direction:column;align-items:flex-start;gap:8px' });
+            peBooks.forEach(k => {
+                const cb = el('input', { type: 'checkbox' }); cb.checked = chosen().includes(k.id);
+                cb.addEventListener('change', () => { const ids = peBooks.map(x => x.id).filter(id => id === k.id ? cb.checked : chosen().includes(id)); b.ids = ids.join(','); peChanged(); });
+                box.append(el('label', { class: 'check' }, [cb, k.title_ru || k.id]));
+            });
+            add(el('div', { class: 'field' }, [el('label', { text: 'Какие книги показать' }), box, el('div', { class: 'hint', text: 'Ничего не отмечено — показываются все книги в порядке из раздела «Книги».' })]));
+            break;
+        }
+        case 'book_toc':
+            add(peSelect(b, 'book_id', 'Книга', peBooks.length ? peBooks.map(k => [k.id, k.title_ru || k.id]) : [['', '— книг нет —']]));
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            add(el('div', { class: 'hint', text: 'Главы подтягиваются автоматически. Скрытые главы не показываются.' }));
+            break;
+        case 'notes_feed':
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            add(peSelect(b, 'count', 'Сколько заметок показать', ['3', '5', '10', '1', '2'].map(n => [n, n])));
+            break;
+        case 'projects':
+            add(peI18nText(b, 'title', 'Заголовок (необязательно)'));
+            add(el('div', { class: 'hint', text: 'Показываются все видимые проекты из раздела «Проекты».' }));
+            break;
+        case 'contact':
+            add(peI18nText(b, 'title', 'Заголовок'));
+            add(peI18nText(b, 'desc', 'Пояснение под заголовком', { textarea: true }));
+            add(peText(b, 'subject', 'Пометка в письме (необязательно)', { placeholder: 'например: Страница «Об авторе»' }));
+            add(el('div', { class: 'hint', text: 'Сообщения приходят в Netlify → Forms → author-contact, как и с главной. В предпросмотре форма не отправляется.' }));
             break;
     }
     add(peLangsField(b));
