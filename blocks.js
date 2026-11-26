@@ -225,6 +225,13 @@ const Blocks = (() => {
             return `<div class="blk-divider blk-divider-${b.style === 'space' ? 'space' : b.style === 'dots' ? 'dots' : 'line'}" style="padding:${size}px 20px">${inner}</div>`;
         },
 
+        // Одна или несколько кнопок в ряд
+        buttons(b) {
+            const items = (b.items || []).filter(x => x && x.link && anyText(x.label));
+            if (!items.length) return '';
+            return `<div class="blk-buttons blk-buttons-row${b.align === 'left' ? ' blk-left' : ''}">${items.map(x => button(x, x.style !== 'secondary')).join('')}</div>`;
+        },
+
         // «Вы остановились на…» — для тех, кто уже читал книгу на сайте
         continue_reading(b) {
             if (!state.dataReady) return '';

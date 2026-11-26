@@ -28,6 +28,9 @@ const BLOCK_TYPES = {
     video: { label: 'Видео', icon: 'fa-brands fa-youtube', hint: 'YouTube, Vimeo или ссылка на mp4',
         make: () => ({ url: '', title: {}, caption: {} }),
         summary: b => Blocks.pick(b.title, 'ru') || b.url || '' },
+    buttons: { label: 'Кнопки', icon: 'fa-solid fa-hand-pointer', hint: 'Одна или несколько кнопок-ссылок в ряд',
+        make: () => ({ align: 'center', items: [{ label: {}, link: '', style: 'primary' }] }),
+        summary: b => (b.items || []).map(x => Blocks.pick(x.label, 'ru')).filter(Boolean).join(' · ') },
     divider: { label: 'Разделитель', icon: 'fa-solid fa-grip-lines', hint: 'Линия, точки или просто отступ',
         make: () => ({ style: 'line', size: 'm' }),
         summary: b => ({ line: 'линия', dots: 'точки', space: 'отступ' }[b.style] || 'линия') },
@@ -423,6 +426,12 @@ function peBlockForm(b) {
             add(peI18nText(b, 'caption', 'Подпись под видео (необязательно)'));
             break;
         }
+        case 'buttons':
+            add(peSelect(b, 'align', 'Расположение', [['center', 'По центру'], ['left', 'Слева']]));
+            add(peRepeater(b, 'items', 'Кнопки', 4, () => ({ label: {}, link: '', style: 'secondary' }), x => [
+                peI18nText(x, 'label', 'Текст кнопки'), peLink(x, 'link', 'Куда ведёт'),
+                peSelect(x, 'style', 'Вид', [['primary', 'Заливка (главная)'], ['secondary', 'Контур (дополнительная)']])]));
+            break;
         case 'divider':
             add(el('div', { class: 'grid-2' }, [
                 peSelect(b, 'style', 'Вид', [['line', 'Линия'], ['dots', 'Три точки'], ['space', 'Просто отступ']]),
@@ -500,7 +509,8 @@ function peI18nRich(obj, key, label) {
     PE_LANGS.forEach(([l, t]) => {
         const holder = el('div', { class: 'rich' }, el('div'));
         box.append(el('div', { class: 'field', 'data-lang-field': l }, [el('label', { text: label }, el('span', { class: 'lang-mark', text: t })), holder]));
-        const q = new Quill(holder.firstChild, { theme: 'snow', modules: { toolbar: [[{ header: [2, 3, false] }], ['bold', 'italic', 'underline'], ['blockquote', 'link'], [{ list: 'ordered' }, { list: 'bullet' }], [{ align: [] }], ['image'], ['clean']] } });
+        const q = new Quill(holder.firstChild, { theme: 'snow', modules: { toolbar: richToolbar(false) } });
+        setupQuillTools(q);
         q.getModule('toolbar').addHandler('image', async () => { const url = await pickAndUpload(); if (!url) return; const r = q.getSelection(true); q.insertEmbed(r.index, 'image', url, 'user'); });
         if (obj[key][l]) q.clipboard.dangerouslyPasteHTML(obj[key][l], 'silent');
         q.on('text-change', () => { const h = q.root.innerHTML; obj[key][l] = (!q.getText().trim() && !h.includes('<img')) ? '' : h; peChanged(); });

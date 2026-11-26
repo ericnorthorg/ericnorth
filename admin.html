@@ -103,6 +103,19 @@
     .repeater-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; }
     .icon-preview { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 8px; color: var(--accent); flex-shrink: 0; }
     .inline { display: flex; gap: 10px; align-items: center; }
+    /* Выбор ссылки и кнопки в тексте */
+    .lp-modal { width: min(720px, 100%); }
+    .lp-modal > .input[type=search] { margin: 4px 0 10px; }
+    .lp-list { max-height: 42vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+    .lp-group { padding: 8px 14px 4px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: #faf9f7; border-bottom: 1px solid var(--border); }
+    .lp-item { display: flex; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--border); padding: 9px 14px; cursor: pointer; font: inherit; }
+    .lp-item:hover { background: var(--accent-soft); }
+    .lp-item.active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+    .lp-item code { color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+    .lp-field { display: flex; gap: 8px; align-items: center; }
+    .lp-field > input { flex: 1; min-width: 0; }
+    .lp-field > .btn { flex-shrink: 0; }
+    .ql-editor a.content-btn { display: inline-block; background: var(--accent); color: #fff; padding: 4px 14px; border-radius: 20px; text-decoration: none; font-weight: 600; }
     /* Медиатека */
     .md-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
     .md-drop-hint { margin: 0 0 14px; color: var(--muted); font-size: .82rem; }
@@ -240,6 +253,7 @@
 <script src="page-editor.js"></script>
 <script src="comments-admin.js"></script>
 <script src="media-admin.js"></script>
+<script src="editor-tools.js"></script>
 <script>
 const SUPABASE_URL = 'https://eaumjrfaosozzoebnlcf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GqIgz56xMe8Qq68x5tqGZw_GybLuFuT';
@@ -771,8 +785,9 @@ function renderField(form, f, row, lang, isNew) {
             wrap.append(label, box);
             const q = new Quill(box.firstChild, {
                 theme: 'snow',
-                modules: { toolbar: [[{ header: [2, 3, false] }], ['bold', 'italic', 'underline', 'strike'], ['blockquote', 'link'], [{ list: 'ordered' }, { list: 'bullet' }], [{ align: [] }], ['image'], ['clean']] },
+                modules: { toolbar: richToolbar(true) },
             });
+            setupQuillTools(q);
             q.getModule('toolbar').addHandler('image', async () => {
                 const url = await pickAndUpload(); if (!url) return;
                 const range = q.getSelection(true); q.insertEmbed(range.index, 'image', url, 'user');
