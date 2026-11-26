@@ -102,7 +102,7 @@ async function peOpen(id) {
     PE = {
         row: data,
         draft: { title: d.title || {}, seo: d.seo || {}, blocks: (d.blocks || []).map(b => ({ id: b.id || peUid(), ...b })) },
-        lang: state.editLang || 'ru', device: 'desktop', open: null, dirty: false, ready: false, timer: null,
+        lang: state.editLang || 'ru', device: 'desktop', open: null, dirty: false, ready: false, timer: null, view: 'blocks', revPreview: null,
     };
     main.classList.add('main-wide');
     peRenderShell();
@@ -117,7 +117,9 @@ function peChanged(opts = {}) {
 
 function pePost(opts = {}) {
     if (!PE || !PE.ready || !PE.iframe) return;
-    PE.iframe.contentWindow.postMessage({ type: 'page-preview', content: PE.draft, lang: PE.lang, selected: PE.open, scrollTo: opts.scrollTo }, window.location.origin);
+    const rev = PE.view === 'history' && PE.revPreview;
+    PE.iframe.contentWindow.postMessage({ type: 'page-preview', content: rev ? rev.content : PE.draft, lang: PE.lang, selected: rev ? null : PE.open, scrollTo: opts.scrollTo }, window.location.origin);
+    if (PE.previewLabel) PE.previewLabel.textContent = rev ? 'Просмотр версии от ' + peDate(rev.created_at) : 'Предпросмотр черновика';
 }
 
 function peUpdateStatus() {
@@ -141,6 +143,7 @@ function peSetDevice(dv) {
 }
 
 function peRenderShell() {
+    PE.ready = false;
     const main = document.getElementById('main');
     main.innerHTML = '';
     // Верх: назад, название, статус, кнопки
@@ -155,6 +158,8 @@ function peRenderShell() {
             PE.statusEl]),
         el('div', { class: 'inline', style: 'flex-wrap:wrap' }, [
             el('button', { class: 'btn btn-icon btn-danger', type: 'button', title: 'Удалить страницу', onclick: peDelete }, el('i', { class: 'fa-solid fa-trash' })),
+            PE.row.published ? el('button', { class: 'btn', type: 'button', title: 'Убрать страницу с сайта, не удаляя её', onclick: peUnpublish }, [el('i', { class: 'fa-regular fa-eye-slash' }), 'Снять с публикации']) : null,
+            el('button', { class: 'btn', type: 'button', onclick: () => PE.view === 'history' ? peCloseHistory() : peOpenHistory() }, [el('i', { class: 'fa-solid fa-clock-rotate-left' }), 'История']),
             PE.row.published ? live : null, saveBtn, pubBtn])]));
 
     // Панели: слева настройки и блоки, справа предпросмотр
@@ -164,18 +169,18 @@ function peRenderShell() {
     PE.iframe = el('iframe', { class: 'pe-frame', src: '/page.html?preview=1', title: 'Предпросмотр' });
     PE.frameBox = el('div', { class: 'pe-frame-box' }, PE.iframe);
     const previewCol = el('div', { class: 'pe-preview' }, [
-        el('div', { class: 'pe-preview-bar' }, [langBar, el('span', { class: 'hint', text: 'Предпросмотр черновика' }), devBar]),
+        el('div', { class: 'pe-preview-bar' }, [langBar, PE.previewLabel = el('span', { class: 'hint', text: 'Предпросмотр черновика' }), devBar]),
         el('div', { class: 'pe-frame-wrap' }, PE.frameBox)]);
     main.append(el('div', { class: 'pe-wrap' }, [panel, previewCol]));
     PE.panel = panel;
-    peRenderPanel();
+    if (PE.view === 'history') peRenderHistory(); else peRenderPanel();
     peUpdateStatus();
 }
 
 window.addEventListener('message', e => {
     if (!PE || e.origin !== window.location.origin || !e.data) return;
     if (e.data.type === 'preview-ready') { PE.ready = true; pePost(); }
-    if (e.data.type === 'block-click' && Number.isInteger(e.data.index)) { PE.open = e.data.index; peRenderPanel(true); pePost(); }
+    if (e.data.type === 'block-click' && Number.isInteger(e.data.index) && PE.view !== 'history') { PE.open = e.data.index; peRenderPanel(true); pePost(); }
 });
 
 function peRenderPanel(scrollToOpen) {
@@ -416,4 +421,62 @@ async function peDelete() {
     PE = null; linkSuggestions = [];
     toast('Страница удалена', 'ok');
     renderPages();
+}
+
+/* ---------- ИСТОРИЯ И СНЯТИЕ С ПУБЛИКАЦИИ ---------- */
+const peDate = d => new Date(d).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+async function peOpenHistory() {
+    PE.view = 'history'; PE.revPreview = null; PE.revisions = null;
+    peRenderHistory();
+    const { data, error } = await sb.from('page_revisions').select('id,content,note,created_at').eq('page_id', PE.row.id).order('created_at', { ascending: false }).limit(50);
+    if (!PE || PE.view !== 'history') return;
+    if (error) { toast(errText(error), 'err'); return; }
+    PE.revisions = data;
+    peRenderHistory();
+}
+
+function peCloseHistory() {
+    PE.view = 'blocks'; PE.revPreview = null;
+    peRenderPanel(); pePost();
+}
+
+function peRenderHistory() {
+    const panel = PE.panel; panel.innerHTML = ''; editors = [];
+    panel.append(el('div', { class: 'pe-card', style: 'padding:14px 16px' }, [
+        el('button', { class: 'link-btn', style: 'margin:0 0 8px', type: 'button', onclick: peCloseHistory, html: '<i class="fa-solid fa-arrow-left"></i> Назад к редактору' }),
+        el('b', { text: 'История публикаций' }),
+        el('div', { class: 'hint', style: 'margin-top:6px', text: 'Каждая публикация сохраняется здесь. Нажмите на версию, чтобы посмотреть её справа, и, если нужно, верните её в черновик. Сайт при этом не меняется, пока вы снова не опубликуете.' })]));
+    if (!PE.revisions) { panel.append(el('div', { class: 'loading', text: 'Загрузка…' })); return; }
+    if (!PE.revisions.length) { panel.append(el('div', { class: 'empty', text: 'Пока нет ни одной публикации из админки' })); return; }
+    PE.revisions.forEach((r, i) => {
+        const active = PE.revPreview && PE.revPreview.id === r.id;
+        const isLive = PE.row.published && peSame(PE.row.published, r.content);
+        const card = el('div', { class: 'pe-card pe-block' + (active ? ' open' : '') }, [
+            el('div', { class: 'pe-block-head', onclick: () => { PE.revPreview = active ? null : r; peRenderHistory(); pePost({ scrollTo: 0 }); } }, [
+                el('i', { class: 'fa-solid fa-clock-rotate-left pe-block-icon' }),
+                el('div', { class: 'pe-block-name' }, [el('b', { text: peDate(r.created_at) }), isLive ? el('span', { class: 'badge', text: 'сейчас на сайте' }) : null,
+                    el('div', { class: 'meta', text: `${r.note || ''} · блоков: ${((r.content || {}).blocks || []).length}` })])])]);
+        if (active) card.append(el('div', { class: 'pe-form', style: 'padding-top:12px' }, el('button', { class: 'btn btn-primary', type: 'button', onclick: () => peRestore(r) }, [el('i', { class: 'fa-solid fa-rotate-left' }), 'Вернуть эту версию в черновик'])));
+        panel.append(card);
+    });
+}
+
+function peRestore(r) {
+    if (PE.dirty && !confirm('В редакторе есть несохранённые изменения. Заменить их этой версией?')) return;
+    const c = peClone(r.content || {});
+    PE.draft = { title: c.title || {}, seo: c.seo || {}, blocks: (c.blocks || []).map(b => ({ id: b.id || peUid(), ...b })) };
+    PE.open = null;
+    peCloseHistory();
+    peChanged({ now: true });
+    toast('Версия возвращена в редактор. Сохраните или опубликуйте, чтобы применить.', 'ok');
+}
+
+async function peUnpublish() {
+    if (!confirm('Убрать страницу с сайта? Читатели увидят «страница не найдена». Черновик и история останутся, опубликовать можно снова в любой момент.')) return;
+    const { data, error } = await sb.from('pages').update({ published: null, published_at: null }).eq('id', PE.row.id).select('*').single();
+    if (error) { toast(errText(error), 'err'); return; }
+    PE.row = data; linkSuggestions = [];
+    toast('Страница снята с публикации', 'ok');
+    peRenderShell();
 }
