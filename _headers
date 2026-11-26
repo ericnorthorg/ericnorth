@@ -1,0 +1,6 @@
+# Базовые заголовки безопасности для статических страниц сайта.
+# SAMEORIGIN: сайт (и админку) нельзя встроить в чужой сайт, а предпросмотр в своей админке работает.
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

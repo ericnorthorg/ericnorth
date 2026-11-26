@@ -47,6 +47,29 @@ function showSpinner() {
     document.body.appendChild(spinner);
 }
 
+// Если база не ответила — понятное сообщение на языке читателя и кнопка «Попробовать ещё раз»
+function showLoadError() {
+    if (document.getElementById('cms-load-error')) return;
+    const lang = (typeof detectLang === 'function') ? detectLang() : 'en';
+    const t = {
+        ru: ['Не удалось загрузить содержимое сайта. Проверьте интернет и попробуйте ещё раз.', 'Попробовать ещё раз'],
+        en: ['Could not load the site content. Check your connection and try again.', 'Try again'],
+        uk: ['Не вдалося завантажити вміст сайту. Перевірте інтернет і спробуйте ще раз.', 'Спробувати ще раз'],
+    }[lang] || ['Could not load the site content. Check your connection and try again.', 'Try again'];
+    const box = document.createElement('div');
+    box.id = 'cms-load-error';
+    box.setAttribute('role', 'alert');
+    box.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99998;max-width:calc(100% - 32px);'
+        + 'background:var(--bg-color,#fff);color:var(--text-color,#222);border:1px solid var(--accent-color,#ff500a);border-radius:12px;'
+        + 'box-shadow:0 8px 30px rgba(0,0,0,.18);padding:14px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;font-size:1rem;';
+    const msg = document.createElement('span'); msg.textContent = t[0];
+    const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = t[1];
+    btn.style.cssText = 'background:var(--accent-color,#ff500a);color:#fff;border:none;border-radius:20px;padding:8px 18px;font:inherit;font-weight:600;cursor:pointer;';
+    btn.onclick = () => window.location.reload();
+    box.append(msg, btn);
+    document.body.appendChild(box);
+}
+
 function hideSpinner() {
     const spinner = document.getElementById('cms-global-spinner');
     if (spinner) {
@@ -326,6 +349,7 @@ async function initCMS() {
         document.dispatchEvent(new Event('db-ready'));
     } catch (error) {
         console.error('Ошибка загрузки данных из CMS:', error);
+        showLoadError();
     } finally {
         clearTimeout(spinnerTimer);
         hideSpinner();

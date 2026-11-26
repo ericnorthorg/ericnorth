@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Page not found | Eric North</title>
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #ffffff; --text: #222222; --muted: #666666; --accent: #ff500a; --accent-hover: #e04508; --border: #eeeeee; }
+        [data-theme="dark"] { --bg: #121212; --text: #e0e0e0; --muted: #aaaaaa; --accent: #ff6b35; --accent-hover: #ff8c61; --border: #333333; }
+        [hidden] { display: none !important; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px;
+            font-family: 'Source Sans Pro', sans-serif; background: var(--bg); color: var(--text); text-align: center; }
+        .logo { display: inline-flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; margin-bottom: 40px; }
+        .logo svg { width: 45px; height: 45px; }
+        .logo b { font-family: 'Merriweather', serif; font-size: 1.4rem; letter-spacing: 1px; text-transform: uppercase; }
+        .logo b span { color: var(--accent); }
+        .code { font-family: 'Merriweather', serif; font-size: 5rem; font-weight: 700; color: var(--accent); line-height: 1; margin: 0 0 10px; }
+        h1 { font-family: 'Merriweather', serif; font-size: 1.6rem; margin: 0 0 14px; }
+        p { color: var(--muted); font-size: 1.1rem; max-width: 520px; margin: 0 auto 30px; line-height: 1.6; }
+        .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn { display: inline-block; padding: 12px 28px; border-radius: 30px; font-weight: 600; text-decoration: none; border: 2px solid var(--accent); }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        .btn-secondary { color: var(--accent); }
+        .btn-secondary:hover { background: var(--accent); color: #fff; }
+    </style>
+    <script>
+        // Тема и язык: язык из адреса (/en/, /ru/, /uk/), иначе прошлый выбор читателя, иначе язык браузера, иначе английский
+        (function () {
+            try { if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
+            var langs = ['en', 'ru', 'uk'], m = location.pathname.match(/^\/(en|ru|uk)(\/|$)/), lang = m && m[1];
+            if (!lang) { try { var s = localStorage.getItem('lang'); if (langs.indexOf(s) >= 0) lang = s; } catch (e) {} }
+            if (!lang) { var b = (navigator.languages || [navigator.language || '']).map(function (l) { return String(l).slice(0, 2).toLowerCase(); }).filter(function (l) { return langs.indexOf(l) >= 0; })[0]; lang = b || 'en'; }
+            document.documentElement.lang = lang;
+            window.PAGE_LANG = lang;
+        })();
+    </script>
+</head>
+<body>
+    <a class="logo" id="home-logo" href="/">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 5 L15 60 L50 95 L50 5 Z" fill="currentColor"/><path d="M50 5 L85 60 L50 95 L50 5 Z" fill="#ff500a"/><path d="M50 40 L50 85" stroke="white" stroke-width="4" stroke-linecap="round"/></svg>
+        <b>Eric <span>North</span></b>
+    </a>
+    <div class="code">404</div>
+    <div lang="en" data-l="en">
+        <h1>Page not found</h1>
+        <p>This page seems to have slipped through a crack in reality. The link may be broken, or the page has moved.</p>
+    </div>
+    <div lang="ru" data-l="ru" hidden>
+        <h1>Страница не найдена</h1>
+        <p>Похоже, эта страница провалилась в трещину реальности. Возможно, ссылка устарела или страница переехала.</p>
+    </div>
+    <div lang="uk" data-l="uk" hidden>
+        <h1>Сторінку не знайдено</h1>
+        <p>Схоже, ця сторінка провалилася в тріщину реальності. Можливо, посилання застаріло або сторінка переїхала.</p>
+    </div>
+    <div class="btns">
+        <a class="btn btn-primary" data-href="/" href="/"><span data-l="en">Home</span><span data-l="ru" hidden>На главную</span><span data-l="uk" hidden>На головну</span></a>
+        <a class="btn btn-secondary" data-href="/books" href="/books"><span data-l="en">Books</span><span data-l="ru" hidden>Книги</span><span data-l="uk" hidden>Книги</span></a>
+        <a class="btn btn-secondary" data-href="/blog" href="/blog"><span data-l="en">Blog</span><span data-l="ru" hidden>Блог</span><span data-l="uk" hidden>Блог</span></a>
+    </div>
+    <script>
+        (function () {
+            var lang = window.PAGE_LANG || 'en';
+            document.querySelectorAll('[data-l]').forEach(function (e) { e.hidden = e.getAttribute('data-l') !== lang; });
+            var t = { en: 'Page not found', ru: 'Страница не найдена', uk: 'Сторінку не знайдено' }[lang];
+            document.title = t + ' | Eric North';
+            // Ссылки ведут на ту же языковую версию сайта
+            var prefixed = /^\/(en|ru|uk)(\/|$)/.test(location.pathname);
+            document.querySelectorAll('a[data-href], #home-logo').forEach(function (a) {
+                var h = a.getAttribute('data-href') || '/';
+                if (prefixed) a.setAttribute('href', '/' + lang + (h === '/' ? '/' : h));
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -104,8 +104,9 @@
         <button class="close-search" onclick="toggleSubscribe()"><i class="fa-solid fa-xmark"></i></button>
         <div class="search-container">
             <h2 style="font-family: 'Merriweather'; margin-bottom: 30px;" data-translate="join_news">Новости и обновления</h2>
-            <form class="subscribe-form" name="subscribe-modal" method="POST" data-netlify="true" action="/">
+            <form class="subscribe-form" name="subscribe-modal" method="POST" data-netlify="true" action="/" netlify-honeypot="bot-field">
     <input type="hidden" name="form-name" value="subscribe-modal" />
+    <div hidden><input name="bot-field" /></div>
     <input type="email" name="email" class="subscribe-input" placeholder="Email" required>
     <button type="submit" class="subscribe-submit" data-translate="subscribe_btn">Подписаться</button>
             </form>

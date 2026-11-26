@@ -201,8 +201,8 @@
             </div>
 
             <h3 class="block-title" data-translate="leave_comment" style="margin-top: 20px;">Оставить комментарий</h3>
-            <form class="comment-form" id="comment-form" name="post-comments" method="POST" data-netlify="true" action="/" netlify-honeypot="bot-field">
-                <input type="hidden" name="form-name" value="post-comments" />
+            <!-- Комментарии отправляются в Supabase (submit_comment) и ждут модерации в админке; Netlify Forms здесь не используется -->
+            <form class="comment-form" id="comment-form" name="post-comments" method="POST" action="javascript:void 0">
                 <input type="hidden" name="Название статьи" id="form-post-title" value="" />
                 <div hidden><input name="bot-field" /></div>
                 

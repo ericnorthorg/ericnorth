@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Админка | Eric North</title>
+<!-- Иконка админки и «приложение» на ПК/телефоне (без этого браузер брал стандартную иконку Netlify) -->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/admin-192.png">
+<link rel="apple-touch-icon" href="icons/admin-180.png">
+<link rel="manifest" href="admin.webmanifest">
+<meta name="theme-color" content="#1d1d1d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -524,7 +530,7 @@ $('#login-form').onsubmit = async e => {
 sb.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') showLogin('newpass');
 });
-$('#logout-btn').onclick = async () => { await sb.auth.signOut(); showLogin(); };
+$('#logout-btn').onclick = async () => { if (!peConfirmLeave() || !formConfirmLeave()) return; if (PE) PE.dirty = false; await sb.auth.signOut(); showLogin(); };
 
 async function enterApp(session) {
     const { data: isAdmin, error } = await sb.rpc('is_admin');
@@ -542,8 +548,31 @@ async function enterApp(session) {
     go(location.hash.slice(1) in SECTIONS ? location.hash.slice(1) : 'home');
     updateCommentsBadge();
 }
+/* ---------- НЕСОХРАНЁННЫЕ ИЗМЕНЕНИЯ В ФОРМАХ ---------- */
+// Любой ввод в форме (текст, выбор, галочки, кнопки оформления, картинки) помечает её изменённой.
+// Уйти из формы без сохранения можно только после подтверждения.
+let FORM_DIRTY = false;
+function watchForm(form) {
+    FORM_DIRTY = false;
+    const mark = () => { FORM_DIRTY = true; };
+    form.addEventListener('input', mark);
+    form.addEventListener('change', mark);
+    form.addEventListener('click', e => {
+        const b = e.target.closest('button');
+        if (b && b.type !== 'submit' && !b.closest('.lang-tabs')) mark();
+    });
+}
+function formConfirmLeave() {
+    if (!FORM_DIRTY) return true;
+    if (!confirm('Есть несохранённые изменения. Уйти без сохранения?')) return false;
+    FORM_DIRTY = false;
+    return true;
+}
+window.addEventListener('beforeunload', e => { if (FORM_DIRTY) { e.preventDefault(); e.returnValue = ''; } });
+
 function go(section) {
     if (!peConfirmLeave()) return;
+    if (!formConfirmLeave()) return;
     PE = null;
     $('#main').classList.remove('main-wide');
     state.section = section;
@@ -749,12 +778,14 @@ async function move(section, all, i, dir) {
 /* ---------- ФОРМА ---------- */
 let editors = [];
 async function openForm(section, row, all, ctx = {}) {
+    if (!formConfirmLeave()) return;
     const s = SECTIONS[section], isNew = !row;
     row = row ? { ...row } : { ...(s.newRow ? s.newRow() : {}), ...(ctx.defaults || {}) };
     editors = [];
     if (!linkSuggestions.length) loadLinkSuggestions();
     const main = $('#main'); main.innerHTML = '';
-    const back = ctx.back || (() => renderList(section));
+    const backTo = ctx.back || (() => renderList(section));
+    const back = () => { if (formConfirmLeave()) backTo(); };
     const titleText = isNew ? (s.addLabel || 'Новая запись') : (s.rowTitle ? s.rowTitle(row) : s.title);
     main.append(el('div', { class: 'page-head' }, [
         el('div', {}, [el('button', { class: 'link-btn', style: 'margin:0 0 8px', onclick: back, html: '<i class="fa-solid fa-arrow-left"></i> ' + esc(ctx.backLabel || 'Назад к списку') }),
@@ -782,6 +813,7 @@ async function openForm(section, row, all, ctx = {}) {
     if (!isNew && (!s.canDelete || s.canDelete(row))) bottom.append(el('button', { class: 'btn btn-danger', type: 'button', onclick: remove }, [el('i', { class: 'fa-solid fa-trash' }), 'Удалить']));
     form.append(bottom);
     main.append(form);
+    watchForm(form);
     setEditLang(state.editLang);
     if (!isNew && s.afterForm) s.afterForm(main, row);
 
@@ -811,17 +843,19 @@ async function openForm(section, row, all, ctx = {}) {
         }
         btn.disabled = false;
         if (res.error) { toast(errText(res.error), 'err'); return; }
+        FORM_DIRTY = false;
         toast('Сохранено', 'ok');
         linkSuggestions = [];
         if (isNew) openForm(section, res.data, all, ctx); else Object.assign(row, res.data);
     }
     async function remove() {
         const name = s.rowTitle ? s.rowTitle(row) : 'запись';
-        const extra = section === 'books' ? '\nВсе главы этой книги тоже будут удалены.' : '';
+        const extra = section === 'books' ? '\nВсе главы этой книги тоже будут удалены.' : section === 'posts' ? '\nВсе комментарии к этому посту тоже будут удалены.' : '';
         if (!confirm(`Удалить «${name}»? Это нельзя отменить.${extra}`)) return;
         const { error } = await sb.from(s.table).delete().eq(s.key, row[s.key]);
         if (error) { toast(errText(error), 'err'); return; }
-        toast('Удалено', 'ok'); linkSuggestions = []; back();
+        FORM_DIRTY = false;
+        toast('Удалено', 'ok'); linkSuggestions = []; backTo();
     }
 }
 function setEditLang(l) {
@@ -926,7 +960,16 @@ function pickFile() {
     });
 }
 async function uploadImage(file) {
+    // Фото с iPhone (HEIC/HEIF) браузер не умеет ни показать, ни сжать — просим сохранить как JPG
+    if (/^image\/hei[cf]/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)) {
+        toast(`«${file.name}»: формат HEIC (фото с iPhone) не поддерживается. Сохраните фото как JPG и загрузите снова.`, 'err');
+        return null;
+    }
     file = await prepareImage(file);
+    if (!/^image\/(jpeg|png|webp|gif|svg\+xml|avif)$/.test(file.type)) {
+        toast(`«${file.name}»: такой формат не поддерживается. Подойдут JPG, PNG, WebP, AVIF, GIF или SVG.`, 'err');
+        return null;
+    }
     if (file.size > 10 * 1024 * 1024) { toast('Файл больше 10 МБ', 'err'); return null; }
     const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
     const path = `${new Date().getFullYear()}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -943,9 +986,9 @@ function imageInput(val) {
     const url = el('input', { class: 'input', type: 'text', value: val ?? '', placeholder: 'https://… или загрузите файл' });
     const upd = () => { preview.src = url.value.trim() || 'data:,'; preview.style.visibility = url.value.trim() ? 'visible' : 'hidden'; };
     url.addEventListener('input', upd); upd();
-    const btn = el('button', { class: 'btn', type: 'button', onclick: async () => { const u = await pickAndUpload(); if (u) { url.value = u; upd(); } } },
+    const btn = el('button', { class: 'btn', type: 'button', onclick: async () => { const u = await pickAndUpload(); if (u) { url.value = u; upd(); url.dispatchEvent(new Event('input', { bubbles: true })); } } },
         [el('i', { class: 'fa-regular fa-images' }), 'Выбрать или загрузить']);
-    const clear = el('button', { class: 'btn', type: 'button', onclick: () => { url.value = ''; upd(); } }, 'Убрать');
+    const clear = el('button', { class: 'btn', type: 'button', onclick: () => { url.value = ''; upd(); url.dispatchEvent(new Event('input', { bubbles: true })); } }, 'Убрать');
     const node = el('div', { class: 'img-field' }, [preview, el('div', { class: 'controls' }, [url, el('div', { class: 'inline' }, [btn, clear])])]);
     return { node, getValue: () => url.value.trim() || null };
 }
@@ -1012,6 +1055,7 @@ async function renderSettings() {
     main.append(el('div', { class: 'page-head' }, [el('div', {}, [el('h2', { text: 'Настройки' }), el('div', { class: 'sub', text: 'Меню, цвета сайта, соцсети в подвале, карточки-кнопки на главной и блок «Написать автору»' })])]));
     const form = el('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } });
     main.append(form);
+    watchForm(form);
 
     // Меню
     const inp = (obj, k, ph, list) => { const i = el('input', { class: 'input', placeholder: ph || '', value: obj[k] || '', list }); i.oninput = () => obj[k] = i.value.trim(); return i; };
@@ -1072,7 +1116,7 @@ async function renderSettings() {
     form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.blog_categories.push({ id: '', label_ru: '', label_en: '', label_uk: '', _new: true }); drawCats(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить рубрику']));
 
     // Цвета
-    const THEME_DEFAULTS = { light: { accent: '#ff500a', bg: '#ffffff', text: '#222222', card: '#f9f9f9' }, dark: { accent: '#ff6b35', bg: '#121212', text: '#e0e0e0', card: '#1e1e1e' } };
+    const THEME_DEFAULTS = { light: { accent: '#ff500a', bg: '#ffffff', text: '#222222', card: '#f9f9f9' }, dark: { accent: '#ff6b35', bg: '#121212', text: '#e0e0e0', card: '#1d1d1d' } };
     const THEME_LABELS = { accent: 'Акцент (кнопки, ссылки)', bg: 'Фон страницы', text: 'Текст', card: 'Фон карточек' };
     form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Цвета сайта' })]));
     form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Отдельно для светлой и тёмной темы. Под цветами — пример, как это будет выглядеть. Изменения появятся на сайте после «Сохранить настройки».' }));
@@ -1225,6 +1269,7 @@ async function renderSettings() {
         btn.disabled = false;
         if (error) { toast(errText(error), 'err'); return; }
         site.blog_categories.forEach(c => delete c._new); blogCategories = value.blog_categories; drawCats();
+        FORM_DIRTY = false;
         toast('Настройки сохранены', 'ok');
     }
 }

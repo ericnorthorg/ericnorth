@@ -129,10 +129,10 @@ function openMediaPicker() {
     });
 }
 
-// Перед загрузкой: большие фото уменьшаем до 2400 px и сохраняем в WebP (GIF и SVG не трогаем)
+// Перед загрузкой: большие фото (JPG, PNG, WebP, AVIF) уменьшаем до 2400 px и сохраняем в WebP (GIF и SVG не трогаем)
 async function prepareImage(file) {
     try {
-        if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+        if (!/^image\/(jpeg|png|webp|avif)$/.test(file.type)) return file;
         const img = await createImageBitmap(file);
         const max = 2400, scale = Math.min(1, max / Math.max(img.width, img.height));
         if (scale === 1 && file.size < 1.5 * 1024 * 1024) { img.close && img.close(); return file; }
