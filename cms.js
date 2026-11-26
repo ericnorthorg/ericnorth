@@ -206,9 +206,9 @@ function esc(s) {
 }
 
 // Описание картинки (alt) из заголовка на текущем языке
-function altText(ru, en) {
+function altText(ru, en, uk) {
     const lang = (typeof currentLang !== 'undefined' ? currentLang : (typeof detectLang === 'function' ? detectLang() : 'en'));
-    const t = (lang === 'en' ? (en || ru) : (ru || en)) || '';
+    const t = (lang === 'en' ? (en || ru) : lang === 'uk' ? (uk || en || ru) : (ru || en)) || '';
     return esc(String(t).replace(/<[^>]*>/g, ''));
 }
 

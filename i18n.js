@@ -75,10 +75,22 @@ function withUk(dict, pageUk) {
     return dict;
 }
 
+// Заголовки вкладки обычных страниц на трёх языках (сервер ставит их же — netlify/edge-functions/seo-static.js;
+// при правке менять в обоих местах). Нужны, когда язык переключают без перезагрузки страницы.
+const STATIC_TITLES = {
+    '/': { en: 'Eric North | Mystic Fantasy Author', ru: 'Eric North | Автор мистического фэнтези', uk: 'Eric North | Автор містичного фентезі' },
+    '/blog': { en: 'Blog | Eric North', ru: 'Блог | Eric North', uk: 'Блог | Eric North' },
+    '/books': { en: 'Books | Eric North', ru: 'Книги | Eric North', uk: 'Книги | Eric North' },
+    '/notes': { en: 'Notes | Eric North', ru: 'Заметки | Eric North', uk: 'Нотатки | Eric North' },
+    '/projects': { en: 'Projects | Eric North', ru: 'Проекты | Eric North', uk: 'Проєкти | Eric North' },
+};
+
 // Показывает блоки нужного языка (.lang-ru / .lang-en / .lang-uk).
 // Если у блока нет украинской версии, по-украински показывается английская.
 function toggleLangBlocks(lang) {
     document.documentElement.lang = lang;
+    const st = STATIC_TITLES[pathWithoutLang().replace(/\/index\.html$/, '/').replace(/\.html$/, '').replace(/(.)\/$/, '$1')];
+    if (st && st[lang]) document.title = st[lang];
     SITE_LANGS.forEach(l => {
         document.querySelectorAll('.lang-' + l).forEach(el => { el.hidden = (l !== lang); });
     });

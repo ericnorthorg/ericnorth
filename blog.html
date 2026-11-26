@@ -269,7 +269,7 @@
                 if (featuredPost && featuredContainer) {
                     featuredContainer.innerHTML = `
                         <a href="post/featured" class="featured-post">
-                            <div class="featured-image-wrapper"><img src="${featuredPost.image}" alt="${altText(featuredPost.title_ru, featuredPost.title_en)}" class="featured-image" loading="lazy"></div>
+                            <div class="featured-image-wrapper"><img src="${featuredPost.image}" alt="${altText(featuredPost.title_ru, featuredPost.title_en, featuredPost.title_uk)}" class="featured-image" loading="lazy"></div>
                             <div class="featured-content">
                                 <div class="featured-label"><span class="lang-ru">Избранное</span><span class="lang-en" hidden>Featured</span><span class="lang-uk" hidden>Вибране</span></div>
                                 <h2 class="featured-title"><span class="lang-ru">${featuredPost.title_ru}</span><span class="lang-en" hidden>${featuredPost.title_en}</span><span class="lang-uk" hidden>${featuredPost.title_uk}</span></h2>
@@ -287,7 +287,7 @@
                     card.className = 'blog-card';
                     card.setAttribute('data-category', post.category || 'all');
                     card.innerHTML = `
-                        <div class="card-image-wrapper"><img src="${post.image}" alt="${altText(post.title_ru, post.title_en)}" class="card-image" loading="lazy"></div>
+                        <div class="card-image-wrapper"><img src="${post.image}" alt="${altText(post.title_ru, post.title_en, post.title_uk)}" class="card-image" loading="lazy"></div>
                         <div class="card-content">
                             <div class="card-meta">
                                 <span class="card-category"><span class="lang-ru">${post.meta_ru ? post.meta_ru.split('|')[0] : 'Блог'}</span><span class="lang-en" hidden>${post.meta_en ? post.meta_en.split('|')[0] : 'Blog'}</span><span class="lang-uk" hidden>${post.meta_uk ? post.meta_uk.split('|')[0] : 'Блог'}</span></span>
