@@ -108,7 +108,9 @@ async function renderPages() {
     const homeMode = ((set.data || {}).value || {}).mode === 'blocks' ? 'blocks' : 'classic';
     main.append(el('div', { class: 'page-head' }, [
         el('div', {}, [el('h2', { text: 'Страницы' }), el('div', { class: 'sub', text: 'Собственные страницы сайта из блоков: «Об авторе», «Мир», «Персонажи» и любые другие. Адрес страницы — /p/название.' })]),
-        el('button', { class: 'btn btn-primary', onclick: peCreateDialog }, [el('i', { class: 'fa-solid fa-plus' }), 'Новая страница'])]));
+        el('div', { class: 'inline', style: 'flex-wrap:wrap' }, [
+            el('button', { class: 'btn', type: 'button', title: 'Как пользоваться конструктором', onclick: () => go('guide') }, [el('i', { class: 'fa-regular fa-circle-question' }), 'Посібник']),
+            el('button', { class: 'btn btn-primary', onclick: peCreateDialog }, [el('i', { class: 'fa-solid fa-plus' }), 'Новая страница'])])]));
     const list = el('div', { class: 'list' });
     const search = listSearchBar('pages', { placeholder: 'Поиск страницы по названию или адресу…', filters: [TR_FILTER], onChange: () => drawPages() });
     const drawPages = () => {
@@ -396,6 +398,7 @@ function peRenderShell() {
             el('h2', {}, [document.createTextNode(Blocks.pick(PE.draft.title, 'ru') || PE.row.slug), el('span', { class: 'meta', style: 'font-size:.85rem;font-family:Inter;color:var(--muted);margin-left:10px', text: '/p/' + PE.row.slug })]),
             PE.statusEl]),
         el('div', { class: 'inline', style: 'flex-wrap:wrap' }, [
+            el('a', { class: 'btn btn-icon', href: 'admin.html#guide', target: '_blank', title: 'Посібник по конструктору (откроется в новой вкладке)' }, el('i', { class: 'fa-regular fa-circle-question' })),
             el('button', { class: 'btn btn-icon btn-danger', type: 'button', title: 'Удалить страницу', onclick: peDelete }, el('i', { class: 'fa-solid fa-trash' })),
             PE.row.published ? el('button', { class: 'btn', type: 'button', title: 'Убрать страницу с сайта, не удаляя её', onclick: peUnpublish }, [el('i', { class: 'fa-regular fa-eye-slash' }), 'Снять с публикации']) : null,
             el('button', { class: 'btn', type: 'button', onclick: () => PE.view === 'history' ? peCloseHistory() : peOpenHistory() }, [el('i', { class: 'fa-solid fa-clock-rotate-left' }), 'История']),

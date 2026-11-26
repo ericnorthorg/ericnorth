@@ -77,6 +77,31 @@
     .tr-mark.none { background: #f2e5e5; color: var(--danger); }
     .empty { padding: 40px; text-align: center; color: var(--muted); }
 
+    /* Посібник конструктора (pages-guide.js) */
+    .pg-guide { line-height: 1.6; max-width: 880px; }
+    .pg-guide section { padding-top: 6px; margin-bottom: 26px; scroll-margin-top: 16px; }
+    .pg-guide h3 { font-family: 'Merriweather', serif; font-size: 1.25rem; margin: 18px 0 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .pg-guide h4 { font-size: 1rem; margin: 16px 0 6px; }
+    .pg-guide p, .pg-guide li, .pg-guide dd { color: #333; }
+    .pg-guide ul, .pg-guide ol { padding-left: 22px; margin: 6px 0 10px; }
+    .pg-guide li { margin: 3px 0; }
+    .pg-guide code { background: #f3f1ee; border-radius: 4px; padding: 1px 5px; font-size: .88em; }
+    .pg-guide a[data-pg] { color: var(--accent); cursor: pointer; text-decoration: none; }
+    .pg-guide a[data-pg]:hover { text-decoration: underline; }
+    .pg-toc { background: #faf8f5; border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; scroll-margin-top: 16px; }
+    .pg-toc ol { columns: 2; column-gap: 28px; margin: 8px 0 0; }
+    @media (max-width: 700px) { .pg-toc ol { columns: 1; } }
+    .pg-table { border-collapse: collapse; width: 100%; margin: 8px 0 12px; font-size: .92rem; }
+    .pg-table th, .pg-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+    .pg-table th { background: #faf8f5; }
+    .pg-block { border: 1px solid var(--border); border-radius: 10px; padding: 4px 16px 6px; margin: 10px 0; }
+    .pg-block h4 i { color: var(--accent); width: 20px; }
+    .pg-note { background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; margin: 8px 0 12px; }
+    .pg-dl dt { font-weight: 600; margin-top: 12px; }
+    .pg-dl dd { margin: 4px 0 0 0; }
+    .pg-checklist { list-style: none; padding-left: 4px !important; }
+    .pg-checklist li::before { content: '☐ '; color: var(--accent); }
+
     /* Форма */
     .form { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--border); padding: 26px; }
     .form-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -262,6 +287,7 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="blocks.js"></script>
 <script src="page-editor.js"></script>
+<script src="pages-guide.js"></script>
 <script src="comments-admin.js"></script>
 <script src="media-admin.js"></script>
 <script src="editor-tools.js"></script>
@@ -440,6 +466,7 @@ const SECTIONS = {
         ],
     },
     pages: { title: 'Страницы', icon: 'fa-solid fa-layer-group', custom: renderPages },
+    guide: { title: 'Посібник', icon: 'fa-regular fa-circle-question', custom: renderPagesGuide },
     comments: { title: 'Комментарии', icon: 'fa-regular fa-comments', custom: renderComments },
     media: { title: 'Медиатека', icon: 'fa-regular fa-images', custom: renderMedia },
     settings: { title: 'Настройки', icon: 'fa-solid fa-sliders', custom: renderSettings },
