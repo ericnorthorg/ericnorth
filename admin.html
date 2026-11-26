@@ -469,7 +469,7 @@ async function loadLinkSuggestions() {
         ['index.html', 'Главная'], ['blog.html', 'Блог'], ['books.html', 'Книги'], ['notes.html', 'Заметки'], ['projects.html', 'Проекты'],
         ...(pg.data || []).map(x => [`p/${x.slug}`, `Страница: ${(x.draft && x.draft.title && x.draft.title.ru) || x.slug}`]),
         ...(p.data || []).map(x => [`post/${x.id}`, `Пост: ${x.title_ru}`]),
-        ...(c.data || []).map(x => [`reader.html?book=${x.book_id}&chapter=${x.chapter_num}`, `Глава: ${x.title_ru || x.chapter_num}`]),
+        ...(c.data || []).map(x => [`read/${x.book_id}/${x.chapter_num}`, `Глава: ${x.title_ru || x.chapter_num}`]),
     ];
     const dl = $('#link-options') || document.body.appendChild(el('datalist', { id: 'link-options' }));
     dl.innerHTML = ''; linkSuggestions.forEach(([v, l]) => dl.append(el('option', { value: v, label: l })));
@@ -651,7 +651,7 @@ function renderField(form, f, row, lang, isNew) {
         }
         case 'link': {
             const inp = el('input', { class: 'input', type: 'text', value: val ?? '', list: 'link-options', placeholder: 'Начните вводить или выберите из списка' });
-            wrap.append(label, inp, el('div', { class: 'hint', text: 'Страница сайта (blog.html), пост (post/…), глава (reader.html?book=…&chapter=…) или внешний адрес https://…' }));
+            wrap.append(label, inp, el('div', { class: 'hint', text: 'Страница сайта (blog.html), пост (post/…), глава (read/книга/номер) или внешний адрес https://…' }));
             get = d => d[key] = inp.value.trim() || null;
             break;
         }
@@ -735,7 +735,7 @@ async function renderChaptersBlock(main, book) {
         SECTIONS.chapters.rowTitle = r => r.title_ru || `Глава ${r.chapter_num}`;
         SECTIONS.chapters.addLabel = `Новая глава — ${book.title_ru}`;
         SECTIONS.chapters.newRow = () => ({ chapter_num: nextNum, hidden: false });
-        SECTIONS.chapters.viewUrl = r => `reader.html?book=${book.id}&chapter=${r.chapter_num}`;
+        SECTIONS.chapters.viewUrl = r => `read/${book.id}/${r.chapter_num}`;
         openForm('chapters', full, null, { back: backToBook, backLabel: `Назад к книге «${book.title_ru}»`, defaults: { book_id: book.id } });
     };
     box.append(el('div', { class: 'page-head', style: 'margin-bottom:14px' }, [
@@ -746,7 +746,7 @@ async function renderChaptersBlock(main, book) {
     data.forEach(c => list.append(el('div', { class: 'row' }, [
         el('div', { class: 'info', onclick: () => openChapter(c) }, [
             el('div', { class: 'title' }, [document.createTextNode(c.title_ru || `Глава ${c.chapter_num}`), c.hidden ? el('span', { class: 'badge hidden-b', text: 'скрыто' }) : null]),
-            el('div', { class: 'meta', text: `№ ${c.chapter_num} · reader.html?book=${book.id}&chapter=${c.chapter_num}` })]),
+            el('div', { class: 'meta', text: `№ ${c.chapter_num} · read/${book.id}/${c.chapter_num}` })]),
         el('div', { class: 'actions' }, el('button', { class: 'btn btn-icon', type: 'button', onclick: () => openChapter(c) }, el('i', { class: 'fa-solid fa-pen' })))])));
     box.append(list);
 }

@@ -167,7 +167,7 @@ const Blocks = (() => {
                 const list = want.length ? want.map(id => all.find(x => x.id === id)).filter(Boolean) : all;
                 if (!list.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
                 return list.map(k => {
-                    const read = k.link_read || `reader.html?book=${encodeURIComponent(k.id)}&chapter=1`;
+                    const read = k.link_read || `read/${encodeURIComponent(k.id)}/1`;
                     return `<div class="blk-book">
                         ${k.cover ? `<img src="${safeUrl(k.cover)}" alt="${esc(k.title_en || k.title_ru)}" loading="lazy">` : ''}
                         <div><h3>${tr(L3(k, 'title'))}</h3><div class="blk-prose">${tr(L3(k, 'desc'), { tag: 'div', html: true })}</div>
@@ -183,7 +183,7 @@ const Blocks = (() => {
                 const ch = (typeof chaptersDB === 'object' && Array.isArray(chaptersDB) ? chaptersDB : []).filter(c => c.book_id === b.book_id && !c.hidden)
                     .sort((x, y) => parseFloat(x.chapter_num) - parseFloat(y.chapter_num));
                 if (!ch.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
-                return `<ol class="blk-toc-list">${ch.map(c => `<li><a href="reader.html?book=${encodeURIComponent(b.book_id)}&chapter=${encodeURIComponent(c.chapter_num)}">
+                return `<ol class="blk-toc-list">${ch.map(c => `<li><a href="read/${encodeURIComponent(b.book_id)}/${encodeURIComponent(c.chapter_num)}">
                     ${LANGS.map(l => { const t = pick(L3(c, 'title'), l), num = /^\s*(глава|chapter|розділ|часть|part|частина|пролог|prologue|эпилог|epilogue|епілог)(?=[\s.:,\d]|$)/i.test(t) ? '' : `<span class="blk-toc-num">${esc(pick(UI.chapter, l))} ${esc(c.chapter_num)}</span>`;
                         return `<span class="lang-${l} blk-toc-row"${l === 'ru' ? '' : ' hidden'}>${num}<span class="blk-toc-title">${esc(t)}</span></span>`; }).join('')}<i class="fa-solid fa-arrow-right"></i></a></li>`).join('')}</ol>`;
             })())}</section>`;
@@ -239,7 +239,7 @@ const Blocks = (() => {
             const name = {}; LANGS.forEach(l => name[l] = `${pick(L3(book, 'title'), l)} — ${pick(L3(ch, 'title'), l)}`);
             return `<div class="blk-continue"><div>
                 <div class="blk-continue-label">${tr(label)}</div><h3>${tr(name)}</h3></div>
-                <a class="btn-primary" href="reader.html?book=${encodeURIComponent(bookId)}&chapter=${encodeURIComponent(num)}">${tr(btn)} <i class="fa-solid fa-book-open"></i></a></div>`;
+                <a class="btn-primary" href="read/${encodeURIComponent(bookId)}/${encodeURIComponent(num)}">${tr(btn)} <i class="fa-solid fa-book-open"></i></a></div>`;
         },
 
         contact(b) {

@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         type: (lang === 'ru' ? 'Книга (Глава)' : lang === 'uk' ? 'Книга (розділ)' : 'Book (Chapter)'),
                         title: title || ((lang === 'ru' ? `Глава ${chapter.chapter_num}` : lang === 'uk' ? `Розділ ${chapter.chapter_num}` : `Chapter ${chapter.chapter_num}`)),
                         text: stripHtml(text),
-                        link: `reader.html?book=${chapter.book_id}&chapter=${chapter.chapter_num}`
+                        link: `read/${chapter.book_id}/${chapter.chapter_num}`
                     });
                 }
             });

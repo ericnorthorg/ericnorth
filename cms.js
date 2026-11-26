@@ -234,11 +234,18 @@ function applySettings() {
 const CHAPTER_META = 'book_id,chapter_num,title_ru,title_en,title_uk';
 let chapterTextsLoaded = false;
 
+// Какая глава открыта в читалке: /read/<книга>/<номер> или старый вид reader.html?book=…&chapter=…
+function readerParams() {
+    const m = window.location.pathname.match(/\/read\/([A-Za-z0-9_-]+)\/(\d+)\/?$/);
+    if (m) return { book: m[1], chapter: parseInt(m[2], 10) };
+    const p = new URLSearchParams(window.location.search);
+    return { book: p.get('book'), chapter: parseInt(p.get('chapter'), 10) };
+}
+
 async function fetchChapters() {
     const base = `select=${CHAPTER_META}&hidden=eq.false&order=book_id.asc,chapter_num.asc`;
-    const params = new URLSearchParams(window.location.search);
-    const book = params.get('book'), chapter = parseInt(params.get('chapter'), 10);
-    const isReader = /\/reader(\.html)?$/.test(window.location.pathname) && book && chapter;
+    const { book, chapter } = readerParams();
+    const isReader = /\/(reader(\.html)?$|read\/)/.test(window.location.pathname) && book && chapter;
     const [meta, current] = await Promise.all([
         fetchTable('chapters', base),
         isReader

@@ -2,6 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <base href="/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reader | Eric North</title>
     
@@ -120,10 +121,10 @@
             </div>
 
             <div class="reader-pagination" id="pagination-container" style="display: none;">
-                <a href="#" id="btn-prev" class="page-btn disabled">
+                <a id="btn-prev" class="page-btn disabled">
                     <i class="fa-solid fa-arrow-left"></i> <span data-translate="prev_chapter">Предыдущая</span>
                 </a>
-                <a href="#" id="btn-next" class="page-btn disabled">
+                <a id="btn-next" class="page-btn disabled">
                     <span data-translate="next_chapter">Следующая</span> <i class="fa-solid fa-arrow-right"></i>
                 </a>
             </div>
@@ -231,9 +232,7 @@
         if (icon) icon.className = currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
 
         document.addEventListener('db-ready', () => {
-            const params = new URLSearchParams(window.location.search);
-            const bookId = params.get('book');
-            const chapterNum = parseInt(params.get('chapter'), 10);
+            const { book: bookId, chapter: chapterNum } = readerParams();
             
             if(typeof chaptersDB !== 'undefined') {
                 const container = document.getElementById('chapter-container');
@@ -273,14 +272,14 @@
                 const prevChapter = chaptersDB.find(ch => ch.book_id === bookId && parseInt(ch.chapter_num, 10) === (chapterNum - 1));
                 const btnPrev = document.getElementById('btn-prev');
                 if (prevChapter) {
-                    btnPrev.href = `reader.html?book=${bookId}&chapter=${chapterNum - 1}`;
+                    btnPrev.href = `read/${bookId}/${chapterNum - 1}`;
                     btnPrev.classList.remove('disabled');
                 }
 
                 const nextChapter = chaptersDB.find(ch => ch.book_id === bookId && parseInt(ch.chapter_num, 10) === (chapterNum + 1));
                 const btnNext = document.getElementById('btn-next');
                 if (nextChapter) {
-                    btnNext.href = `reader.html?book=${bookId}&chapter=${chapterNum + 1}`;
+                    btnNext.href = `read/${bookId}/${chapterNum + 1}`;
                     btnNext.classList.remove('disabled');
                 }
 

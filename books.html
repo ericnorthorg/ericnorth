@@ -301,12 +301,12 @@
                     }
 
                     // Проверка: читал ли пользователь эту книгу ранее?
-                    let readLink = `reader.html?book=${book.id}&chapter=1`;
+                    let readLink = `read/${book.id}/1`;
                     let btnTextKey = 'read_btn';
                     let btnIcon = '<i class="fa-solid fa-book-open"></i>';
 
                     if (lastReadBook === book.id && lastReadChapter) {
-                        readLink = `reader.html?book=${book.id}&chapter=${lastReadChapter}`;
+                        readLink = `read/${book.id}/${lastReadChapter}`;
                         btnTextKey = 'continue_btn';
                         btnIcon = '<i class="fa-solid fa-bookmark"></i>';
                     }

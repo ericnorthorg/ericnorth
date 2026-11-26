@@ -7,6 +7,20 @@
 /en/post/*  /posts.html  200
 /ru/post/*  /posts.html  200
 /uk/post/*  /posts.html  200
+# Розділи книг: /read/книга/номер (SEO — netlify/edge-functions/seo-read.js)
+/read/*     /reader.html 200
+/en/read/*  /reader.html 200
+/ru/read/*  /reader.html 200
+/uk/read/*  /reader.html 200
+# Старі адреси розділів reader.html?book=...&chapter=... ведуть на нові
+/reader.html     book=:book chapter=:chapter  /read/:book/:chapter      301!
+/reader          book=:book chapter=:chapter  /read/:book/:chapter      301!
+/en/reader.html  book=:book chapter=:chapter  /en/read/:book/:chapter   301!
+/en/reader       book=:book chapter=:chapter  /en/read/:book/:chapter   301!
+/ru/reader.html  book=:book chapter=:chapter  /ru/read/:book/:chapter   301!
+/ru/reader       book=:book chapter=:chapter  /ru/read/:book/:chapter   301!
+/uk/reader.html  book=:book chapter=:chapter  /uk/read/:book/:chapter   301!
+/uk/reader       book=:book chapter=:chapter  /uk/read/:book/:chapter   301!
 # Старі адреси постів posts.html?id=... ведуть на нові
 /posts.html     id=:id  /post/:id      301!
 /posts          id=:id  /post/:id      301!

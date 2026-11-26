@@ -14,7 +14,7 @@ export default async (request) => {
         ]);
         posts.filter(p => !p.hidden).forEach(p => add(`/post/${p.id}`, p.updated_at));
         pages.filter(p => p.slug !== 'home').forEach(p => add(`/p/${p.slug}`, p.published_at));
-        chapters.filter(c => !c.hidden).forEach(c => add(`/reader?book=${encodeURIComponent(c.book_id)}&chapter=${encodeURIComponent(c.chapter_num)}`, c.updated_at));
+        chapters.filter(c => !c.hidden).forEach(c => add(`/read/${encodeURIComponent(c.book_id)}/${encodeURIComponent(c.chapter_num)}`, c.updated_at));
     } catch (e) {
         console.error('sitemap', e);
     }
