@@ -102,6 +102,16 @@
     .repeater-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; }
     .icon-preview { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 8px; color: var(--accent); flex-shrink: 0; }
     .inline { display: flex; gap: 10px; align-items: center; }
+    /* Комментарии */
+    .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: .72rem; font-weight: 700; border-radius: 10px; padding: 1px 7px; }
+    .cm-list { display: flex; flex-direction: column; gap: 12px; }
+    .cm-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+    .cm-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    .cm-email { margin-left: 10px; color: var(--muted); font-size: .85rem; }
+    .cm-meta { color: var(--muted); font-size: .85rem; }
+    .cm-meta a { color: var(--accent); }
+    .cm-body { white-space: pre-line; line-height: 1.6; margin-bottom: 12px; overflow-wrap: anywhere; }
+    .cm-reply { margin-top: 12px; }
     /* Редактор страниц */
     .pe-home { padding: 18px 20px; margin-bottom: 8px; }
     .pe-home-head { display: flex; gap: 10px; align-items: center; font-size: 1.05rem; margin-bottom: 6px; }
@@ -208,6 +218,7 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="blocks.js"></script>
 <script src="page-editor.js"></script>
+<script src="comments-admin.js"></script>
 <script>
 const SUPABASE_URL = 'https://eaumjrfaosozzoebnlcf.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GqIgz56xMe8Qq68x5tqGZw_GybLuFuT';
@@ -363,9 +374,10 @@ const SECTIONS = {
         ],
     },
     pages: { title: 'Страницы', icon: 'fa-solid fa-layer-group', custom: renderPages },
+    comments: { title: 'Комментарии', icon: 'fa-regular fa-comments', custom: renderComments },
     settings: { title: 'Настройки', icon: 'fa-solid fa-sliders', custom: renderSettings },
 };
-const NAV_ORDER = ['home', 'pages', 'posts', 'books', 'projects', 'notes', 'settings'];
+const NAV_ORDER = ['home', 'pages', 'posts', 'comments', 'books', 'projects', 'notes', 'settings'];
 
 /* ---------- СОСТОЯНИЕ ---------- */
 let state = { section: null, editLang: 'ru' };
@@ -433,6 +445,7 @@ async function enterApp(session) {
     NAV_ORDER.forEach(k => nav.append(el('button', { class: 'nav-item', 'data-s': k, onclick: () => go(k) },
         [el('i', { class: SECTIONS[k].icon }), SECTIONS[k].title])));
     go(location.hash.slice(1) in SECTIONS ? location.hash.slice(1) : 'home');
+    updateCommentsBadge();
 }
 function go(section) {
     if (!peConfirmLeave()) return;
