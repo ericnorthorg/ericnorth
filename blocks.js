@@ -184,7 +184,8 @@ const Blocks = (() => {
                     .sort((x, y) => parseFloat(x.chapter_num) - parseFloat(y.chapter_num));
                 if (!ch.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
                 return `<ol class="blk-toc-list">${ch.map(c => `<li><a href="reader.html?book=${encodeURIComponent(b.book_id)}&chapter=${encodeURIComponent(c.chapter_num)}">
-                    <span class="blk-toc-num">${tr(UI.chapter)} ${esc(c.chapter_num)}</span><span class="blk-toc-title">${tr(L3(c, 'title'))}</span><i class="fa-solid fa-arrow-right"></i></a></li>`).join('')}</ol>`;
+                    ${LANGS.map(l => { const t = pick(L3(c, 'title'), l), num = /^\s*(глава|chapter|розділ|часть|part|частина|пролог|prologue|эпилог|epilogue|епілог)(?=[\s.:,\d]|$)/i.test(t) ? '' : `<span class="blk-toc-num">${esc(pick(UI.chapter, l))} ${esc(c.chapter_num)}</span>`;
+                        return `<span class="lang-${l} blk-toc-row"${l === 'ru' ? '' : ' hidden'}>${num}<span class="blk-toc-title">${esc(t)}</span></span>`; }).join('')}<i class="fa-solid fa-arrow-right"></i></a></li>`).join('')}</ol>`;
             })())}</section>`;
         },
 
