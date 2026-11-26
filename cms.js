@@ -171,6 +171,36 @@ function applyThemeCss(css) {
     if (!el) { el = document.createElement('style'); el.id = 'site-theme'; document.head.appendChild(el); }
     el.textContent = css || '';
 }
+// Шрифты сайта (Настройки → Шрифты). Хранится { heading, body, reading }: { family, spec, kind }.
+// Логотип не меняется — это часть фирменного стиля. Шрифт читалки выбирает сам читатель.
+const FONT_SELECTORS = {
+    heading: 'h1, h2, h3, h4, .contact-title, .link-card h3, .promo-title, .search-input, .book-title, .block-title, .loading-state, .rm-title, .chapter-title, .featured-title, .card-title, .post-title, .blk-title, .blk-prose h2, .blk-prose h3, .blk-quote blockquote, .blk-post h3, .blk-book h3, .blk-note h3, .blk-project h3, .blk-continue h3',
+    body: 'body, .contact-input, .contact-select, .contact-textarea, .hero-subtitle, .link-card p, .filter-btn, .comment-input, .comment-textarea',
+    reading: '.post-content',
+};
+function fontsSetup(fonts) {
+    const ok = f => f && /^[A-Za-z0-9 ]{2,40}$/.test(f.family || '') && /^[a-z,@;.0-9]{0,80}$/.test(f.spec || '');
+    const used = Object.entries(fonts || {}).filter(([k, f]) => FONT_SELECTORS[k] && ok(f));
+    if (!used.length) return { href: '', css: '' };
+    const fam = [...new Map(used.map(([, f]) => [f.family, f])).values()]
+        .map(f => 'family=' + f.family.replace(/ /g, '+') + (f.spec ? ':' + f.spec : '')).join('&');
+    const css = used.map(([k, f]) => FONT_SELECTORS[k].split(',').map(s => 'html ' + s.trim()).join(', ') +
+        ` { font-family: '${f.family}', ${f.kind === 'sans' ? 'sans-serif' : 'serif'}; }`).join('\n');
+    return { href: `https://fonts.googleapis.com/css2?${fam}&display=swap`, css };
+}
+function applyFonts(fonts) {
+    const { href, css } = fontsSetup(fonts);
+    let link = document.getElementById('site-fonts-link');
+    if (href) {
+        if (!link) { link = document.createElement('link'); link.id = 'site-fonts-link'; link.rel = 'stylesheet'; document.head.appendChild(link); }
+        if (link.href !== href) link.href = href;
+    } else if (link) link.remove();
+    let st = document.getElementById('site-fonts');
+    if (!st) { st = document.createElement('style'); st.id = 'site-fonts'; document.head.appendChild(st); }
+    st.textContent = css;
+    try { if (href) localStorage.setItem('siteFonts', JSON.stringify({ href, css })); else localStorage.removeItem('siteFonts'); } catch (e) {}
+}
+
 function esc(s) {
     return str(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -190,6 +220,7 @@ function applySettings() {
     const css = themeCss(site.theme);
     applyThemeCss(css);
     try { if (css) localStorage.setItem('siteThemeCss', css); else localStorage.removeItem('siteThemeCss'); } catch (e) {}
+    applyFonts(site.fonts);
 
     if (Array.isArray(site.socials)) {
         const links = site.socials.filter(s => s && s.url).map(s =>

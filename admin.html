@@ -104,6 +104,7 @@
     .icon-preview { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 8px; color: var(--accent); flex-shrink: 0; }
     .inline { display: flex; gap: 10px; align-items: center; }
     /* Выбор ссылки и кнопки в тексте */
+    .font-preview { margin-top: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; background: #fff; line-height: 1.5; min-height: 86px; }
     .lp-modal { width: min(720px, 100%); }
     .lp-modal > .input[type=search] { margin: 4px 0 10px; }
     .lp-list { max-height: 42vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
@@ -533,6 +534,45 @@ async function loadLinkSuggestions() {
 }
 
 /* ---------- СПИСОК ---------- */
+/* ---------- ШРИФТЫ САЙТА ---------- */
+// Только шрифты Google Fonts с кириллицей (включая украинские буквы). spec — какие начертания загружать.
+const SERIF4 = 'ital,wght@0,400;0,700;1,400', SANS5 = 'ital,wght@0,400;0,600;0,700;1,400';
+const SITE_FONTS = [
+    { family: 'Merriweather', group: 'serif', kind: 'serif', spec: 'ital,wght@0,300;0,400;0,700;1,400' },
+    { family: 'Lora', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'PT Serif', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'Literata', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'Playfair Display', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'Cormorant Garamond', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'EB Garamond', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'Alegreya', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'Spectral', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'Noto Serif', group: 'serif', kind: 'serif', spec: SERIF4 },
+    { family: 'Source Sans Pro', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Inter', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Roboto', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Open Sans', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'PT Sans', group: 'sans', kind: 'sans', spec: 'ital,wght@0,400;0,700;1,400' },
+    { family: 'Noto Sans', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Montserrat', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Nunito', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Fira Sans', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'IBM Plex Sans', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Rubik', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Manrope', group: 'sans', kind: 'sans', spec: 'wght@400;600;700' },
+    { family: 'Raleway', group: 'sans', kind: 'sans', spec: SANS5 },
+    { family: 'Oswald', group: 'display', kind: 'sans', spec: 'wght@400;700' },
+    { family: 'Prata', group: 'display', kind: 'serif', spec: 'wght@400' },
+    { family: 'Cormorant', group: 'display', kind: 'serif', spec: SERIF4 },
+    { family: 'Philosopher', group: 'display', kind: 'sans', spec: 'ital,wght@0,400;0,700;1,400' },
+];
+// Подгружает шрифт в админку для предпросмотра
+function loadAdminFont(f) {
+    const id = 'adm-font-' + f.family.replace(/\s+/g, '-');
+    if (document.getElementById(id)) return;
+    document.head.append(el('link', { id, rel: 'stylesheet', href: `https://fonts.googleapis.com/css2?family=${f.family.replace(/ /g, '+')}:${f.spec}&display=swap` }));
+}
+
 /* ---------- ПОИСК В СПИСКАХ ---------- */
 // Строка поиска (и при необходимости фильтры) над списком. Запрос запоминается по разделу,
 // поэтому после возврата из формы список остаётся отфильтрованным.
@@ -986,6 +1026,43 @@ async function renderSettings() {
         });
     };
     drawTheme();
+
+    // Шрифты
+    site.fonts = site.fonts || {};
+    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Шрифты' })]));
+    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Все шрифты из списка поддерживают русский и украинский (і, ї, є, ґ). Логотип не меняется. Шрифт в читалке книг каждый читатель выбирает сам.' }));
+    const fontsBox = el('div', { class: 'grid-3' }); form.append(fontsBox);
+    const FONT_ROLES = [
+        ['heading', 'Заголовки', 'Merriweather', 'serif', 'Истории на грани света и тьмы'],
+        ['body', 'Основной текст и меню', 'Source Sans Pro', 'sans', 'Добро пожаловать в творческую мастерскую. Їжак і ґанок — українські літери на місці.'],
+        ['reading', 'Текст постов в блоге', 'Merriweather', 'serif', 'Озеро взорвалось фонтаном серебристых искр. Тьма и свет перемешались в безумном вихре.']];
+    FONT_ROLES.forEach(([role, title, def, defKind, sample]) => {
+        const sel = el('select', { class: 'input' });
+        const cur = site.fonts[role] && site.fonts[role].family;
+        sel.append(el('option', { value: '', text: `${def} (как сейчас)`, selected: !cur }));
+        [['serif', 'С засечками — классика, книги'], ['sans', 'Без засечек — современно, легко читается'], ['display', 'Акцентные — только для заголовков']].forEach(([kind, groupLabel]) => {
+            if (kind === 'display' && role !== 'heading') return;
+            const og = el('optgroup', { label: groupLabel });
+            SITE_FONTS.filter(f => f.group === kind && f.family !== def).forEach(f => og.append(el('option', { value: f.family, text: f.family, selected: f.family === cur })));
+            sel.append(og);
+        });
+        const prev = el('div', { class: 'font-preview', text: sample });
+        const paint = () => {
+            const f = SITE_FONTS.find(x => x.family === sel.value);
+            if (f) { loadAdminFont(f); prev.style.fontFamily = `'${f.family}', ${f.kind === 'sans' ? 'sans-serif' : 'serif'}`; }
+            else prev.style.fontFamily = `'${def}', ${defKind === 'sans' ? 'sans-serif' : 'serif'}`;
+            prev.style.fontSize = role === 'heading' ? '1.45rem' : '1rem';
+            prev.style.fontWeight = role === 'heading' ? '700' : '400';
+        };
+        sel.onchange = () => {
+            const f = SITE_FONTS.find(x => x.family === sel.value);
+            if (f) site.fonts[role] = { family: f.family, spec: f.spec, kind: f.kind }; else delete site.fonts[role];
+            paint();
+        };
+        loadAdminFont({ family: def, spec: role === 'body' ? 'wght@400;700' : 'wght@400;700' });
+        paint();
+        fontsBox.append(el('div', { class: 'repeater-item' }, [el('div', { class: 'repeater-head' }, el('span', { text: title })), sel, prev]));
+    });
 
     // Соцсети
     form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Соцсети в подвале сайта' })]));

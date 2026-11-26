@@ -154,6 +154,12 @@ document.addEventListener('click', e => {
     try {
         const css = localStorage.getItem('siteThemeCss');
         if (css) { const el = document.createElement('style'); el.id = 'site-theme'; el.textContent = css; document.head.appendChild(el); }
+        // Шрифты сайта из прошлого визита (см. applyFonts в cms.js)
+        const f = JSON.parse(localStorage.getItem('siteFonts') || 'null');
+        if (f && f.href && /^https:\/\/fonts\.googleapis\.com\//.test(f.href)) {
+            const l = document.createElement('link'); l.id = 'site-fonts-link'; l.rel = 'stylesheet'; l.href = f.href; document.head.appendChild(l);
+            const st = document.createElement('style'); st.id = 'site-fonts'; st.textContent = f.css || ''; document.head.appendChild(st);
+        }
     } catch (e) {}
 })();
 
