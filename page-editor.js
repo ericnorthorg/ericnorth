@@ -77,6 +77,21 @@ function peConfirmLeave() {
 window.addEventListener('beforeunload', e => { if (PE && PE.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ---------- СПИСОК СТРАНИЦ ---------- */
+// Каких переводов не хватает странице (по черновику): все тексты вида { ru, en, uk }.
+// Если блок показывается не на всех языках, недостающие для него языки не требуются.
+function peTrStatus(draft) {
+    const pairs = [], isTr = v => { const k = Object.keys(v); return k.length > 0 && k.every(x => x === 'ru' || x === 'en' || x === 'uk'); };
+    const walk = (v, label, langs) => {
+        if (!v || typeof v !== 'object') return;
+        if (Array.isArray(v)) { v.forEach(x => walk(x, label, langs)); return; }
+        if (isTr(v)) { pairs.push({ label, langs, ru: v.ru, en: v.en, uk: v.uk }); return; }
+        if (v.type && BLOCK_TYPES[v.type]) { label = BLOCK_TYPES[v.type].label; if (Array.isArray(v.langs) && v.langs.length) langs = v.langs; }
+        Object.values(v).forEach(x => walk(x, label, langs));
+    };
+    walk(draft, 'Страница', null);
+    return trStatus(pairs);
+}
+
 async function renderPages() {
     PE = null;
     document.getElementById('main').classList.remove('main-wide');
@@ -95,10 +110,10 @@ async function renderPages() {
         el('div', {}, [el('h2', { text: 'Страницы' }), el('div', { class: 'sub', text: 'Собственные страницы сайта из блоков: «Об авторе», «Мир», «Персонажи» и любые другие. Адрес страницы — /p/название.' })]),
         el('button', { class: 'btn btn-primary', onclick: peCreateDialog }, [el('i', { class: 'fa-solid fa-plus' }), 'Новая страница'])]));
     const list = el('div', { class: 'list' });
-    const search = listSearchBar('pages', { placeholder: 'Поиск страницы по названию или адресу…', onChange: () => drawPages() });
+    const search = listSearchBar('pages', { placeholder: 'Поиск страницы по названию или адресу…', filters: [TR_FILTER], onChange: () => drawPages() });
     const drawPages = () => {
     list.innerHTML = '';
-    const shown = data.filter(p => search.match(p, p => normText(`${p.slug} ${['ru', 'en', 'uk'].map(l => ((p.draft || {}).title || {})[l] || '').join(' ')}`)));
+    const shown = data.filter(p => trMatch(peTrStatus(p.draft), search.filter('tr')) && search.match(p, p => normText(`${p.slug} ${['ru', 'en', 'uk'].map(l => ((p.draft || {}).title || {})[l] || '').join(' ')}`)));
     search.count.textContent = search.active() ? `найдено ${shown.length} из ${data.length}` : '';
     if (!data.length) list.append(el('div', { class: 'empty', text: 'Страниц пока нет' }));
     else if (!shown.length) list.append(el('div', { class: 'empty', text: 'Ничего не найдено' }));
@@ -108,6 +123,7 @@ async function renderPages() {
             el('div', { class: 'info', onclick: () => peOpen(p.id) }, [
                 el('div', { class: 'title' }, [document.createTextNode(Blocks.pick(p.draft.title, 'ru') || p.slug), el('span', { class: 'badge ' + status[1], text: status[0] })]),
                 el('div', { class: 'meta', text: `/p/${p.slug} · блоков: ${(p.draft.blocks || []).length}` })]),
+            trMarks(peTrStatus(p.draft)),
             el('div', { class: 'actions' }, [
                 p.published ? el('a', { class: 'btn btn-icon', href: `/ru/p/${p.slug}`, target: '_blank', title: 'Открыть на сайте' }, el('i', { class: 'fa-solid fa-eye' })) : null,
                 el('button', { class: 'btn btn-icon', title: 'Редактировать', onclick: () => peOpen(p.id) }, el('i', { class: 'fa-solid fa-pen' }))])]));
@@ -139,6 +155,7 @@ function peHomePanel(home, mode) {
         el('div', { class: 'info', onclick: () => peOpen(home.id) }, [
             el('div', { class: 'title' }, [document.createTextNode('Главная из блоков'), el('span', { class: 'badge ' + st[1], text: st[0] })]),
             el('div', { class: 'meta', text: `блоков: ${(home.draft.blocks || []).length}` })]),
+        trMarks(peTrStatus(home.draft)),
         el('div', { class: 'actions' }, el('button', { class: 'btn', type: 'button', onclick: () => peOpen(home.id) }, [el('i', { class: 'fa-solid fa-pen' }), 'Редактировать']))]));
     const opt = (val, title, desc) => {
         const r = el('input', { type: 'radio', name: 'home-mode', value: val }); r.checked = mode === val;

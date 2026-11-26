@@ -70,6 +70,11 @@
     .badge { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: #eee; color: #555; margin-left: 8px; vertical-align: middle; }
     .badge.hidden-b { background: #f2e5e5; color: var(--danger); }
     .badge.accent { background: var(--accent-soft); color: var(--accent); }
+    .tr-marks { display: flex; gap: 4px; flex-shrink: 0; }
+    .tr-mark { font-size: .72rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; white-space: nowrap; cursor: default; }
+    .tr-mark.ok { background: #e6f2e8; color: #2f7a3e; }
+    .tr-mark.part { background: #fbf0dc; color: #9a6a12; }
+    .tr-mark.none { background: #f2e5e5; color: var(--danger); }
     .empty { padding: 40px; text-align: center; color: var(--muted); }
 
     /* Форма */
@@ -610,6 +615,41 @@ function listSearchBar(key, { placeholder = 'Поиск…', filters = [], onCha
     };
 }
 
+/* ---------- ПЕРЕВОДЫ: каких языков не хватает ---------- */
+// RU — оригинал. Проверяются только поля, заполненные по-русски: есть ли у них EN и UK.
+// В HTML-полях считается текст (пустые <p></p> не в счёт) или картинка/видео.
+const trHas = v => typeof v === 'string' && !!(v.includes('<') ? (v.replace(/<[^>]*>/g, '').replace(/&nbsp;|\s/g, '') || /<(img|iframe|video)\b/i.test(v)) : v.trim());
+// pairs: [{ label, ru, en, uk, langs? }] → { en: { state: 'ok'|'part'|'none', missing: [...] }, uk: … } или null, если переводить нечего
+function trStatus(pairs) {
+    const need = pairs.filter(p => trHas(p.ru));
+    if (!need.length) return null;
+    const res = {};
+    ['en', 'uk'].forEach(l => {
+        const n = need.filter(p => !p.langs || p.langs.includes(l));
+        const missing = n.filter(p => !trHas(p[l])).map(p => p.label);
+        res[l] = { state: !missing.length ? 'ok' : missing.length === n.length ? 'none' : 'part', missing };
+    });
+    return res;
+}
+// Для обычных разделов: переводимые поля берутся из SECTIONS (i18n: true)
+function trRowStatus(section, r) {
+    const s = SECTIONS[section];
+    if (!s.fields) return null;
+    return trStatus(s.fields(r).filter(f => f.i18n).map(f => ({ label: f.label, ru: r[f.key + '_ru'], en: r[f.key + '_en'], uk: r[f.key + '_uk'] })));
+}
+// Плашки «EN ✓ UK ✗» в строке списка; при наведении — каких полей не хватает
+function trMarks(st) {
+    if (!st) return null;
+    return el('div', { class: 'tr-marks' }, ['en', 'uk'].map(l => {
+        const { state, missing } = st[l], L = l.toUpperCase();
+        return el('span', { class: 'tr-mark ' + state, text: `${L} ${state === 'ok' ? '✓' : state === 'part' ? '½' : '✗'}`,
+            title: state === 'ok' ? `${L}: перевод есть` : `${L}: нет перевода — ${[...new Set(missing)].join(', ')}` });
+    }));
+}
+// Фильтр «Без перевода» в строке поиска
+const TR_FILTER = { key: 'tr', options: [['', 'Все переводы'], ['any', 'Без перевода'], ['en', 'Без перевода EN'], ['uk', 'Без перевода UK']] };
+const trMatch = (st, f) => !f || (!!st && (f === 'any' ? st.en.state !== 'ok' || st.uk.state !== 'ok' : st[f].state !== 'ok'));
+
 async function renderList(section, opts = {}) {
     const s = SECTIONS[section], main = $('#main');
     main.innerHTML = '<div class="loading">Загрузка…</div>';
@@ -626,6 +666,7 @@ async function renderList(section, opts = {}) {
     // Поиск и фильтры: по видимости, для постов — ещё по рубрике и отложенным
     const filters = [];
     if (section === 'posts') filters.push({ key: 'cat', options: [['', 'Все рубрики'], ...postCategoryOptions()] });
+    if (s.fields && s.fields(data[0] || {}).some(f => f.i18n)) filters.push(TR_FILTER);
     if (data.some(r => 'hidden' in r)) filters.push({ key: 'vis', options: [['', 'Все'], ['shown', 'Видимые'], ['hidden', 'Скрытые'], ...(section === 'posts' ? [['scheduled', 'Отложенные']] : [])] });
     const search = listSearchBar(section, { placeholder: s.searchHint || 'Поиск по названию и тексту…', filters, onChange: draw });
     const note = el('div', { class: 'hint', style: 'margin:-6px 0 10px' });
@@ -633,6 +674,7 @@ async function renderList(section, opts = {}) {
         const vis = search.filter('vis'), cat = search.filter('cat');
         const shown = data.map((r, i) => [r, i]).filter(([r]) =>
             (!cat || r.category === cat) &&
+            trMatch(trRowStatus(section, r), search.filter('tr')) &&
             (!vis || (vis === 'hidden' ? r.hidden : vis === 'shown' ? !r.hidden && !isScheduled(r) : vis === 'scheduled' ? isScheduled(r) : true)) &&
             search.match(r));
         list.innerHTML = '';
@@ -664,7 +706,7 @@ function listRow(section, r, i, all, noMove) {
         el('div', { class: 'info', onclick: () => openForm(section, r, all) }, [
             el('div', { class: 'title' }, [document.createTextNode(s.rowTitle(r)), ...badges]),
             el('div', { class: 'meta', text: s.rowMeta ? s.rowMeta(r) : '' })]),
-        actions]);
+        trMarks(trRowStatus(section, r)), actions]);
 }
 async function move(section, all, i, dir) {
     const s = SECTIONS[section], j = i + dir;
@@ -886,7 +928,7 @@ async function renderChaptersBlock(main, book) {
     const box = el('div', { class: 'form', style: 'margin-top:22px' });
     main.append(box);
     box.append(el('div', { class: 'loading', text: 'Загрузка глав…' }));
-    const { data, error } = await sb.from('chapters').select('id,book_id,chapter_num,title_ru,title_en,hidden').eq('book_id', book.id).order('chapter_num');
+    const { data, error } = await sb.from('chapters').select('id,book_id,chapter_num,title_ru,title_en,title_uk,text_ru,text_en,text_uk,hidden').eq('book_id', book.id).order('chapter_num');
     box.innerHTML = '';
     if (error) { toast(errText(error), 'err'); return; }
     const backToBook = () => openForm('books', book, null);
@@ -909,11 +951,11 @@ async function renderChaptersBlock(main, book) {
         el('h3', { text: `Главы (${data.length})` }),
         el('button', { class: 'btn btn-primary', type: 'button', onclick: () => openChapter(null) }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить главу'])]));
     const list = el('div', { class: 'list' });
-    const search = listSearchBar('chapters:' + book.id, { placeholder: 'Поиск главы по номеру или названию…', onChange: () => draw() });
+    const search = listSearchBar('chapters:' + book.id, { placeholder: 'Поиск главы по номеру или названию…', filters: [TR_FILTER], onChange: () => draw() });
     if (data.length > 5) box.append(search.bar);
     const draw = () => {
     list.innerHTML = '';
-    const shown = data.filter(c => search.match(c, c => normText(`${c.chapter_num} ${c.title_ru || ''} ${c.title_en || ''}`)));
+    const shown = data.filter(c => trMatch(trRowStatus('chapters', c), search.filter('tr')) && search.match(c, c => normText(`${c.chapter_num} ${c.title_ru || ''} ${c.title_en || ''}`)));
     search.count.textContent = search.active() ? `найдено ${shown.length} из ${data.length}` : '';
     if (!data.length) list.append(el('div', { class: 'empty', text: 'Глав пока нет' }));
     else if (!shown.length) list.append(el('div', { class: 'empty', text: 'Ничего не найдено' }));
@@ -921,6 +963,7 @@ async function renderChaptersBlock(main, book) {
         el('div', { class: 'info', onclick: () => openChapter(c) }, [
             el('div', { class: 'title' }, [document.createTextNode(c.title_ru || `Глава ${c.chapter_num}`), c.hidden ? el('span', { class: 'badge hidden-b', text: 'скрыто' }) : null]),
             el('div', { class: 'meta', text: `№ ${c.chapter_num} · read/${book.id}/${c.chapter_num}` })]),
+        trMarks(trRowStatus('chapters', c)),
         el('div', { class: 'actions' }, el('button', { class: 'btn btn-icon', type: 'button', onclick: () => openChapter(c) }, el('i', { class: 'fa-solid fa-pen' })))])));
     };
     draw();
