@@ -103,7 +103,7 @@ async function renderPages() {
                 p.published ? el('a', { class: 'btn btn-icon', href: `/ru/p/${p.slug}`, target: '_blank', title: 'Открыть на сайте' }, el('i', { class: 'fa-solid fa-eye' })) : null,
                 el('button', { class: 'btn btn-icon', title: 'Редактировать', onclick: () => peOpen(p.id) }, el('i', { class: 'fa-solid fa-pen' }))])]));
     });
-    main.prepend(peHomePanel(home, homeMode));
+    main.querySelector('.page-head').after(peHomePanel(home, homeMode));
     main.append(el('h3', { style: 'margin:26px 0 12px;font-family:Merriweather,serif', text: 'Другие страницы' }), list);
 }
 

@@ -271,7 +271,7 @@ const Blocks = (() => {
             try { html = TYPES[b.type](b); } catch (e) { console.error('Блок не отрисован', b, e); }
             if (!html) return '';
             const sel = opts.editable ? ` data-block-index="${i}" data-block-id="${esc(b.id || '')}"` : '';
-            return `<div class="blk blk-${b.type}${langClasses(b)}"${sel}>${html}</div>`;
+            return `<div class="blk blk-type-${b.type}${langClasses(b)}"${sel}>${html}</div>`;
         }).join('');
     }
 
