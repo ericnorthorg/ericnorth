@@ -534,7 +534,7 @@ function peImage(obj, key, label) {
     const set = v => { url.value = v; obj[key] = v.trim(); upd(); peChanged(); };
     url.addEventListener('input', () => set(url.value)); upd();
     const node = el('div', { class: 'img-field' }, [preview, el('div', { class: 'controls' }, [url, el('div', { class: 'inline' }, [
-        el('button', { class: 'btn', type: 'button', onclick: async () => { const u = await pickAndUpload(); if (u) set(u); } }, [el('i', { class: 'fa-solid fa-upload' }), 'Загрузить']),
+        el('button', { class: 'btn', type: 'button', onclick: async () => { const u = await pickAndUpload(); if (u) set(u); } }, [el('i', { class: 'fa-regular fa-images' }), 'Выбрать']),
         el('button', { class: 'btn', type: 'button', onclick: () => set('') }, 'Убрать')])])]);
     return peField(label, node);
 }
