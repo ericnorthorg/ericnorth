@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /editor.html
+Disallow: /guide.html
+Disallow: /gemini-2.5-flash-image-preview.html
+
+Sitemap: https://ericnorth.netlify.app/sitemap.xml

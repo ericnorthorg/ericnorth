@@ -2,6 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <base href="/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Post | Eric North</title>
     
@@ -319,7 +320,8 @@
         // Логика подгрузки конкретного поста и нижних блоков
         document.addEventListener('db-ready', () => {
             const params = new URLSearchParams(window.location.search);
-            const postId = params.get('id');
+            // Адрес поста: /post/<id> (или старый вид posts.html?id=<id>)
+            const postId = (window.location.pathname.match(/\/post\/([A-Za-z0-9_-]+)/) || [])[1] || params.get('id');
             const mainContainer = document.getElementById('main-content');
             
             if (typeof postsDB !== 'undefined' && postId) {
@@ -403,7 +405,7 @@
                         if (selectedPosts.length > 0) {
                             selectedPosts.forEach(sp => {
                                 rmGrid.innerHTML += `
-                                    <a href="posts.html?id=${sp.id}" class="rm-card">
+                                    <a href="post/${sp.id}" class="rm-card">
                                         <img src="${sp.image || fallbackImg}" class="rm-img">
                                         <div class="rm-content">
                                             <h4 class="rm-title">

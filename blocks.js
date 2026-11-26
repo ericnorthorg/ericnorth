@@ -153,7 +153,7 @@ const Blocks = (() => {
             return `<section class="blk-feed">${titleH2(b)}${dataBlock((() => {
                 const posts = Object.entries(typeof postsDB === 'object' ? postsDB : {}).filter(([id, p]) => !p.hidden && id !== 'featured').slice(0, num(b.count, 3, 1, 12));
                 if (!posts.length) return `<p class="blk-empty">${tr(UI.empty)}</p>`;
-                return `<div class="blk-feed-grid">${posts.map(([id, p]) => `<a class="blk-post" href="posts.html?id=${encodeURIComponent(id)}">
+                return `<div class="blk-feed-grid">${posts.map(([id, p]) => `<a class="blk-post" href="post/${encodeURIComponent(id)}">
                     ${p.image ? `<img src="${safeUrl(p.image)}" alt="${esc(p.title_en || p.title_ru)}" loading="lazy">` : ''}
                     <div class="blk-post-body"><h3>${tr(L3(p, 'title'))}</h3><p>${trPlain(L3(p, 'body'), 120)}</p>
                     <span class="blk-more">${tr(UI.read)} <i class="fa-solid fa-arrow-right"></i></span></div></a>`).join('')}</div>`;

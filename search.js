@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         type: (lang === 'ru' ? 'Блог' : lang === 'uk' ? 'Блог' : 'Blog'),
                         title: title || ((lang === 'ru' ? 'Без заголовка' : lang === 'uk' ? 'Без назви' : 'Untitled')),
                         text: stripHtml(body),
-                        link: `posts.html?id=${id}`
+                        link: `post/${id}`
                     });
                 }
             }

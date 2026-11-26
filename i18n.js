@@ -33,6 +33,7 @@ function pathWithoutLang() {
 
 // Ссылки на эту же страницу на других языках — для поисковиков
 (function addAlternateLinks() {
+    if (document.querySelector('link[rel="alternate"][hreflang]')) return; // уже добавлены сервером
     const rest = pathWithoutLang() + window.location.search;
     const href = l => window.location.origin + '/' + l + (rest.startsWith('/') ? rest : '/' + rest);
     const add = (hreflang, url) => {

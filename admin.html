@@ -295,11 +295,11 @@ const SECTIONS = {
         sub: 'Пост с ID «featured» показывается в блоге как «Избранное». Скрытые посты не видны в списке, но открываются по прямой ссылке.',
         addLabel: 'Новый пост', newRow: () => ({ category: 'stories', hidden: false }),
         rowTitle: r => r.title_ru || '(без заголовка)',
-        rowMeta: r => `${r.meta_ru || ''} · posts.html?id=${r.id}`,
+        rowMeta: r => `${r.meta_ru || ''} · post/${r.id}`,
         rowBadge: r => r.id === 'featured' ? 'Избранное' : null,
-        rowImage: r => r.image, viewUrl: r => `posts.html?id=${r.id}`,
+        rowImage: r => r.image, viewUrl: r => `post/${r.id}`,
         fields: () => [
-            { key: 'id', label: 'ID (адрес поста)', type: 'slug', from: 'title_ru', hint: 'Латиница, цифры, - и _. Используется в ссылке posts.html?id=… и после создания не меняется.' },
+            { key: 'id', label: 'ID (адрес поста)', type: 'slug', from: 'title_ru', hint: 'Латиница, цифры, - и _. Используется в адресе поста /post/… и после создания не меняется.' },
             { key: 'title', label: 'Заголовок', type: 'text', i18n: true },
             { key: 'image', label: 'Обложка', type: 'image' },
             { key: 'category', label: 'Рубрика (для фильтра в блоге)', type: 'select', options: POST_CATEGORIES },
@@ -455,7 +455,7 @@ async function loadLinkSuggestions() {
     linkSuggestions = [
         ['index.html', 'Главная'], ['blog.html', 'Блог'], ['books.html', 'Книги'], ['notes.html', 'Заметки'], ['projects.html', 'Проекты'],
         ...(pg.data || []).map(x => [`p/${x.slug}`, `Страница: ${(x.draft && x.draft.title && x.draft.title.ru) || x.slug}`]),
-        ...(p.data || []).map(x => [`posts.html?id=${x.id}`, `Пост: ${x.title_ru}`]),
+        ...(p.data || []).map(x => [`post/${x.id}`, `Пост: ${x.title_ru}`]),
         ...(c.data || []).map(x => [`reader.html?book=${x.book_id}&chapter=${x.chapter_num}`, `Глава: ${x.title_ru || x.chapter_num}`]),
     ];
     const dl = $('#link-options') || document.body.appendChild(el('datalist', { id: 'link-options' }));
@@ -638,7 +638,7 @@ function renderField(form, f, row, lang, isNew) {
         }
         case 'link': {
             const inp = el('input', { class: 'input', type: 'text', value: val ?? '', list: 'link-options', placeholder: 'Начните вводить или выберите из списка' });
-            wrap.append(label, inp, el('div', { class: 'hint', text: 'Страница сайта (blog.html), пост (posts.html?id=…), глава (reader.html?book=…&chapter=…) или внешний адрес https://…' }));
+            wrap.append(label, inp, el('div', { class: 'hint', text: 'Страница сайта (blog.html), пост (post/…), глава (reader.html?book=…&chapter=…) или внешний адрес https://…' }));
             get = d => d[key] = inp.value.trim() || null;
             break;
         }

@@ -2,6 +2,20 @@
 # а мову сторінка бере з адреси (див. i18n.js). Корінь "/" і старі адреси
 # без мови (blog.html, posts.html?id=...) працюють як раніше.
 # Сторінки конструктора: /p/назва і /en/p/назва (мають стояти вище за загальні правила)
+# Пости блогу: /post/назва (сервер підставляє SEO-дані, див. netlify/edge-functions/seo-post.js)
+/post/*     /posts.html  200
+/en/post/*  /posts.html  200
+/ru/post/*  /posts.html  200
+/uk/post/*  /posts.html  200
+# Старі адреси постів posts.html?id=... ведуть на нові
+/posts.html     id=:id  /post/:id      301!
+/posts          id=:id  /post/:id      301!
+/en/posts.html  id=:id  /en/post/:id   301!
+/en/posts       id=:id  /en/post/:id   301!
+/ru/posts.html  id=:id  /ru/post/:id   301!
+/ru/posts       id=:id  /ru/post/:id   301!
+/uk/posts.html  id=:id  /uk/post/:id   301!
+/uk/posts       id=:id  /uk/post/:id   301!
 /p/*        /page.html   200
 /en/p/*     /page.html   200
 /ru/p/*     /page.html   200
