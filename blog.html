@@ -300,9 +300,31 @@
                     `;
                     grid.appendChild(card);
                 }
+                renderBlogFilters();
                 setLanguage(currentLang);
             }
         });
+
+        // Кнопки рубрик из настроек сайта (Настройки → Рубрики блога). Показываются только рубрики, где есть посты.
+        function renderBlogFilters() {
+            const box = document.querySelector('.filters-container');
+            if (!box) return;
+            const saved = typeof siteSettings !== 'undefined' && siteSettings.site && siteSettings.site.blog_categories;
+            const cats = Array.isArray(saved) && saved.length ? saved : [
+                { id: 'stories', label_ru: 'Рассказы', label_en: 'Stories', label_uk: 'Оповідання' },
+                { id: 'lore', label_ru: 'Лор', label_en: 'Lore', label_uk: 'Лор' },
+                { id: 'news', label_ru: 'Новости', label_en: 'News', label_uk: 'Новини' }];
+            const used = new Set(Object.entries(postsDB).filter(([id, p]) => !p.hidden && id !== 'featured').map(([, p]) => p.category));
+            const e = v => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+            const btn = (id, l) => `<button class="filter-btn" data-cat="${e(id)}" onclick="filterSelection('${e(id)}')">${['ru', 'en', 'uk'].map(x => `<span class="lang-${x}"${x === 'ru' ? '' : ' hidden'}>${e(l[x])}</span>`).join('')}</button>`;
+            const shown = cats.filter(c => c && /^[a-z0-9][a-z0-9_-]*$/.test(c.id || '') && used.has(c.id));
+            box.innerHTML = btn('all', { ru: 'Все', en: 'All', uk: 'Усі' }) + shown.map(c => btn(c.id, {
+                ru: c.label_ru || c.label_en || c.id, en: c.label_en || c.label_ru || c.id, uk: c.label_uk || c.label_en || c.label_ru || c.id })).join('');
+            box.style.display = shown.length > 1 ? '' : 'none';
+            // Ссылка вида blog?cat=lore сразу открывает рубрику
+            const want = new URLSearchParams(window.location.search).get('cat');
+            filterSelection(want && shown.some(c => c.id === want) ? want : 'all');
+        }
 
         function filterSelection(category) {
             const cards = document.getElementsByClassName("blog-card");
@@ -313,7 +335,7 @@
             }
             for (let i = 0; i < btns.length; i++) {
                 btns[i].classList.remove("active");
-                if (btns[i].getAttribute("onclick").includes("'" + category + "'")) btns[i].classList.add("active");
+                if (btns[i].getAttribute("data-cat") === category || (btns[i].getAttribute("onclick") || '').includes("'" + category + "'")) btns[i].classList.add("active");
             }
         }
     </script>

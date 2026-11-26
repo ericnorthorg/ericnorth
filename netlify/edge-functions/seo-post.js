@@ -16,7 +16,7 @@ export default async (request, context) => {
         ]);
         let html = await res.text();
         const post = rows[0];
-        if (!post || post.hidden) {
+        if (!post) {
             html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>Not found | Eric North</title>')
                 .replace(/<\/head>/i, '    <meta name="robots" content="noindex">\n</head>');
             return htmlResponse(html, 404);
@@ -28,6 +28,8 @@ export default async (request, context) => {
             origin: url.origin, rest: `/post/${id}`, prefixed, lang, type: 'article',
             title: `${title} | Eric North`, description: plain(body), image: post.image,
         });
+        // Скрытый пост открывается по прямой ссылке, но поисковикам его не показываем
+        if (post.hidden) html = html.replace(/<\/head>/i, '    <meta name="robots" content="noindex">\n</head>');
         // Текст поста прямо в HTML. Скрипт страницы потом заменит его полной версией.
         const article = `<div class="post-hero-container">
             ${post.image ? `<div class="post-hero-img-wrapper"><img src="${esc(post.image)}" alt="${esc(title)}" class="post-hero-img"></div>` : ''}

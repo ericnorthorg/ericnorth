@@ -294,7 +294,26 @@ const SOCIAL_PRESETS = [
     { name: 'Goodreads', icon: 'fa-brands fa-goodreads-g' }, { name: 'Email', icon: 'fa-solid fa-envelope' },
     { name: 'Сайт', icon: 'fa-solid fa-globe' }
 ];
-const POST_CATEGORIES = [['stories', 'Рассказы'], ['lore', 'Лор'], ['news', 'Новости']];
+// Рубрики блога: хранятся в настройках сайта (site.blog_categories), ниже — значения по умолчанию
+const DEFAULT_BLOG_CATEGORIES = [
+    { id: 'stories', label_ru: 'Рассказы', label_en: 'Stories', label_uk: 'Оповідання' },
+    { id: 'lore', label_ru: 'Лор', label_en: 'Lore', label_uk: 'Лор' },
+    { id: 'news', label_ru: 'Новости', label_en: 'News', label_uk: 'Новини' }];
+let blogCategories = DEFAULT_BLOG_CATEGORIES;
+async function loadBlogCategories() {
+    const { data } = await sb.from('settings').select('value').eq('key', 'site').maybeSingle();
+    const c = data && data.value && data.value.blog_categories;
+    if (Array.isArray(c) && c.length) blogCategories = c;
+}
+function postCategoryOptions(current) {
+    const opts = blogCategories.map(c => [c.id, c.label_ru || c.id]);
+    if (current && !opts.some(o => o[0] === current)) opts.push([current, `${current} (рубрика удалена)`]);
+    return opts;
+}
+// Дата и время для поля «Опубликовать»: из ISO в формат поля и обратно (по местному времени)
+const toLocalInput = iso => { if (!iso) return ''; const d = new Date(iso); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+const fmtDateTime = iso => new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+const isScheduled = r => r.publish_at && new Date(r.publish_at) > new Date();
 
 const SECTIONS = {
     home: {
@@ -327,16 +346,17 @@ const SECTIONS = {
         addLabel: 'Новый пост', newRow: () => ({ category: 'stories', hidden: false }),
         rowTitle: r => r.title_ru || '(без заголовка)',
         rowMeta: r => `${r.meta_ru || ''} · post/${r.id}`,
-        rowBadge: r => r.id === 'featured' ? 'Избранное' : null,
+        rowBadge: r => isScheduled(r) ? `Выйдет ${fmtDateTime(r.publish_at)}` : r.id === 'featured' ? 'Избранное' : null,
         rowImage: r => r.image, viewUrl: r => `post/${r.id}`,
-        fields: () => [
+        fields: row => [
             { key: 'id', label: 'ID (адрес поста)', type: 'slug', from: 'title_ru', hint: 'Латиница, цифры, - и _. Используется в адресе поста /post/… и после создания не меняется.' },
             { key: 'title', label: 'Заголовок', type: 'text', i18n: true },
             { key: 'image', label: 'Обложка', type: 'image' },
-            { key: 'category', label: 'Рубрика (для фильтра в блоге)', type: 'select', options: POST_CATEGORIES },
+            { key: 'category', label: 'Рубрика (для фильтра в блоге)', type: 'select', options: postCategoryOptions(row && row.category), hint: 'Список рубрик настраивается в «Настройках» → «Рубрики блога».' },
             { key: 'meta', label: 'Подпись над заголовком', type: 'text', i18n: true, hint: 'Например «Лор | Архивы». Часть до «|» показывается на карточке.' },
             { key: 'body', label: 'Текст поста', type: 'rich', i18n: true, tall: true },
             { key: 'hidden', label: 'Скрыть из списка блога', type: 'bool' },
+            { key: 'publish_at', label: 'Отложенная публикация', type: 'datetime', hint: 'Пусто — пост виден сразу после сохранения. Если указать дату и время, до этого момента пост не увидит никто, кроме вас: ни в блоге, ни по ссылке, ни в поиске. Время — по часам вашего устройства.' },
         ],
     },
     books: {
@@ -465,6 +485,7 @@ async function enterApp(session) {
     const nav = $('#nav'); nav.innerHTML = '';
     NAV_ORDER.forEach(k => nav.append(el('button', { class: 'nav-item', 'data-s': k, onclick: () => go(k) },
         [el('i', { class: SECTIONS[k].icon }), SECTIONS[k].title])));
+    await loadBlogCategories();
     go(location.hash.slice(1) in SECTIONS ? location.hash.slice(1) : 'home');
     updateCommentsBadge();
 }
@@ -651,6 +672,16 @@ function renderField(form, f, row, lang, isNew) {
             get = d => d[key] = f.type === 'number' ? (inp.value === '' ? 0 : Number(inp.value)) : (inp.value.trim() || null);
             break;
         }
+        case 'datetime': {
+            const inp = el('input', { class: 'input', type: 'datetime-local', value: toLocalInput(val), style: 'max-width:260px' });
+            const status = el('div', { class: 'hint' });
+            const upd = () => { const v = inp.value; status.textContent = !v ? 'Сейчас: публикуется сразу.' : new Date(v) > new Date() ? `Пост появится на сайте ${fmtDateTime(new Date(v).toISOString())}.` : 'Время уже прошло — пост виден на сайте.'; };
+            inp.addEventListener('input', upd); upd();
+            const clear = el('button', { class: 'btn', type: 'button', onclick: () => { inp.value = ''; upd(); } }, 'Публиковать сразу');
+            wrap.append(label, el('div', { class: 'inline' }, [inp, clear]), status);
+            get = d => d[key] = inp.value ? new Date(inp.value).toISOString() : null;
+            break;
+        }
         case 'textarea': {
             const ta = el('textarea', { class: 'input' }); ta.value = val ?? ''; ta.dataset.key = key;
             wrap.append(label, ta);
@@ -815,6 +846,39 @@ async function renderSettings() {
     drawMenu();
     form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.menu.push({ link: '', label_ru: '', label_en: '', label_uk: '' }); drawMenu(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить пункт меню']));
 
+    // Рубрики блога
+    site.blog_categories = Array.isArray(site.blog_categories) && site.blog_categories.length ? site.blog_categories : structuredClone(DEFAULT_BLOG_CATEGORIES);
+    const postCats = {};
+    sb.from('posts').select('category').then(({ data }) => { (data || []).forEach(p => postCats[p.category] = (postCats[p.category] || 0) + 1); drawCats(); });
+    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Рубрики блога' })]));
+    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Кнопки-фильтры над списком постов в блоге. Порядок — стрелками. Рубрики без постов на сайте не показываются.' }));
+    const catsBox = el('div'); form.append(catsBox);
+    const drawCats = () => {
+        catsBox.innerHTML = '';
+        site.blog_categories.forEach((c, i) => {
+            const idInp = inp(c, 'id', 'например: poems');
+            if (!c._new) { idInp.readOnly = true; idInp.style.background = '#f4f3f1'; }
+            else idInp.oninput = () => { c.id = idInp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''); };
+            const n = postCats[c.id] || 0;
+            catsBox.append(el('div', { class: 'repeater-item' }, [
+                el('div', { class: 'repeater-head' }, [el('span', { text: (c.label_ru || c.id || `Рубрика ${i + 1}`) + ` · постов: ${n}` }), el('div', { class: 'inline' }, [
+                    el('button', { class: 'btn btn-icon', type: 'button', title: 'Выше', disabled: i === 0, onclick: () => { [site.blog_categories[i - 1], site.blog_categories[i]] = [site.blog_categories[i], site.blog_categories[i - 1]]; drawCats(); } }, el('i', { class: 'fa-solid fa-arrow-up' })),
+                    el('button', { class: 'btn btn-icon', type: 'button', title: 'Ниже', disabled: i === site.blog_categories.length - 1, onclick: () => { [site.blog_categories[i + 1], site.blog_categories[i]] = [site.blog_categories[i], site.blog_categories[i + 1]]; drawCats(); } }, el('i', { class: 'fa-solid fa-arrow-down' })),
+                    el('button', { class: 'btn btn-icon btn-danger', type: 'button', title: 'Удалить', onclick: () => {
+                        if (site.blog_categories.length === 1) { toast('Нужна хотя бы одна рубрика', 'err'); return; }
+                        if (!confirm(n ? `В этой рубрике постов: ${n}. Они останутся на сайте и будут видны во «Все», но без своей кнопки-фильтра. Удалить рубрику?` : 'Удалить рубрику?')) return;
+                        site.blog_categories.splice(i, 1); drawCats();
+                    } }, el('i', { class: 'fa-solid fa-trash' }))])]),
+                el('div', { class: 'grid-3' }, [
+                    el('div', { class: 'field' }, [el('label', { text: 'Название RU' }), inp(c, 'label_ru')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Название EN' }), inp(c, 'label_en')]),
+                    el('div', { class: 'field' }, [el('label', { text: 'Название UK' }), inp(c, 'label_uk')])]),
+                el('div', { class: 'field' }, [el('label', { text: 'Код рубрики (латиница, не меняется после сохранения)' }), idInp])]));
+        });
+    };
+    drawCats();
+    form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.blog_categories.push({ id: '', label_ru: '', label_en: '', label_uk: '', _new: true }); drawCats(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить рубрику']));
+
     // Цвета
     const THEME_DEFAULTS = { light: { accent: '#ff500a', bg: '#ffffff', text: '#222222', card: '#f9f9f9' }, dark: { accent: '#ff6b35', bg: '#121212', text: '#e0e0e0', card: '#1e1e1e' } };
     const THEME_LABELS = { accent: 'Акцент (кнопки, ссылки)', bg: 'Фон страницы', text: 'Текст', card: 'Фон карточек' };
@@ -922,10 +986,17 @@ async function renderSettings() {
     form.append(el('div', { class: 'form-bottom' }, el('div', { class: 'left' }, el('button', { class: 'btn btn-primary', type: 'submit' }, [el('i', { class: 'fa-solid fa-floppy-disk' }), 'Сохранить настройки']))));
 
     async function save() {
+        // Рубрики: проверяем коды, служебную отметку «новая» не сохраняем
+        const ids = site.blog_categories.map(c => c.id);
+        if (ids.some(id => !/^[a-z0-9][a-z0-9_-]*$/.test(id || ''))) { toast('У каждой рубрики должен быть код латиницей, например poems', 'err'); return; }
+        if (new Set(ids).size !== ids.length) { toast('Коды рубрик не должны повторяться', 'err'); return; }
+        const value = { ...site, blog_categories: site.blog_categories.map(({ _new, ...c }) => c) };
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
-        const { error } = await sb.from('settings').upsert({ key: 'site', value: site, updated_at: new Date().toISOString() });
+        const { error } = await sb.from('settings').upsert({ key: 'site', value, updated_at: new Date().toISOString() });
         btn.disabled = false;
-        if (error) toast(errText(error), 'err'); else toast('Настройки сохранены', 'ok');
+        if (error) { toast(errText(error), 'err'); return; }
+        site.blog_categories.forEach(c => delete c._new); blogCategories = value.blog_categories; drawCats();
+        toast('Настройки сохранены', 'ok');
     }
 }
 
