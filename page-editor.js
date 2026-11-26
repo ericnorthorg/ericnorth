@@ -199,7 +199,7 @@ function peRenderShell() {
     const langBar = el('div', { class: 'lang-tabs pe-lang' }, PE_LANGS.map(([l, t]) => el('button', { type: 'button', 'data-l': l, class: l === PE.lang ? 'active' : '', text: t, onclick: () => peSetLang(l) })));
     const devBar = el('div', { class: 'lang-tabs pe-device' }, PE_DEVICES.map(([d, ic]) => el('button', { type: 'button', 'data-d': d, class: d === PE.device ? 'active' : '', title: d, onclick: () => peSetDevice(d) }, el('i', { class: ic }))));
     PE.iframe = el('iframe', { class: 'pe-frame', src: '/page.html?preview=1', title: 'Предпросмотр' });
-    PE.frameBox = el('div', { class: 'pe-frame-box' }, PE.iframe);
+    PE.frameBox = el('div', { class: 'pe-frame-box', style: 'width:' + PE_DEVICES.find(x => x[0] === PE.device)[2] }, PE.iframe);
     const previewCol = el('div', { class: 'pe-preview' }, [
         el('div', { class: 'pe-preview-bar' }, [langBar, PE.previewLabel = el('span', { class: 'hint', text: 'Предпросмотр черновика' }), devBar]),
         el('div', { class: 'pe-frame-wrap' }, PE.frameBox)]);
