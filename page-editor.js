@@ -201,29 +201,115 @@ async function peCreateHome() {
     peOpen(data.id);
 }
 
+/* ---------- ШАБЛОНЫ НОВЫХ СТРАНИЦ ---------- */
+// Готовые наборы блоков: текст-заглушки в квадратных скобках нужно заменить своим
+const T3 = (ru, en, uk) => ({ ru, en, uk });
+const PAGE_TEMPLATES = [
+    { id: 'blank', label: 'Пустая', icon: 'fa-regular fa-file', desc: 'Без блоков — соберёте сами', blocks: () => [] },
+    { id: 'article', label: 'Статья', icon: 'fa-solid fa-align-left', desc: 'Заголовок и текст — для правил, FAQ, длинных заметок',
+        blocks: () => [
+            { type: 'text', width: 'narrow', align: 'left', title: T3('[Заголовок]', '[Title]', '[Заголовок]'), body: T3('<p>[Текст страницы]</p>', '<p>[Page text]</p>', '<p>[Текст сторінки]</p>') }] },
+    { id: 'about', label: 'Об авторе', icon: 'fa-solid fa-user-pen', desc: 'Фото с рассказом, цитата, книги и форма связи',
+        blocks: () => [
+            { type: 'image_text', image: '', reverse: false, title: T3('[Об авторе]', '[About the author]', '[Про автора]'), text: T3('<p>[Пара абзацев о себе]</p>', '<p>[A couple of paragraphs about yourself]</p>', '<p>[Кілька абзаців про себе]</p>'), button: { label: {}, link: '' } },
+            { type: 'quote', text: T3('[Любимая цитата или кредо]', '[A favourite quote or motto]', '[Улюблена цитата або кредо]'), author: {} },
+            { type: 'books', title: T3('Мои книги', 'My books', 'Мої книги'), ids: '' },
+            { type: 'contact', title: T3('Написать автору', 'Contact the author', 'Написати автору'), desc: {}, subject: '' }] },
+    { id: 'world', label: 'Мир / лор', icon: 'fa-solid fa-earth-europe', desc: 'Шапка, рассказ о мире, галерея и вопросы-ответы',
+        blocks: () => [
+            { type: 'hero', image: '', title: T3('[Название мира]', '[World name]', '[Назва світу]'), accent: {}, subtitle: T3('[Одна фраза о мире]', '[One line about the world]', '[Одна фраза про світ]'), buttons: [] },
+            { type: 'text', width: 'narrow', align: 'left', title: T3('[Как устроен мир]', '[How the world works]', '[Як влаштований світ]'), body: T3('<p>[Описание]</p>', '<p>[Description]</p>', '<p>[Опис]</p>') },
+            { type: 'gallery', title: T3('Галерея', 'Gallery', 'Галерея'), cols: '3', images: [] },
+            { type: 'faq', title: T3('Вопросы и ответы', 'Questions and answers', 'Питання й відповіді'), items: [{ q: T3('[Вопрос]', '[Question]', '[Питання]'), a: T3('[Ответ]', '[Answer]', '[Відповідь]') }] }] },
+    { id: 'book', label: 'Страница книги', icon: 'fa-solid fa-book-open', desc: 'Шапка, аннотация, оглавление и кнопки «Читать»',
+        blocks: () => [
+            { type: 'hero', image: '', title: T3('[Название книги]', '[Book title]', '[Назва книги]'), accent: {}, subtitle: T3('[Короткая аннотация]', '[Short blurb]', '[Коротка анотація]'), buttons: [] },
+            { type: 'text', width: 'narrow', align: 'left', title: T3('О книге', 'About the book', 'Про книгу'), body: T3('<p>[Аннотация]</p>', '<p>[Blurb]</p>', '<p>[Анотація]</p>') },
+            { type: 'book_toc', title: T3('Оглавление', 'Contents', 'Зміст'), book_id: (peBooks[0] || {}).id || '' },
+            { type: 'buttons', align: 'center', items: [{ label: T3('Читать первую главу', 'Read the first chapter', 'Читати перший розділ'), link: peBooks[0] ? `read/${peBooks[0].id}/1` : '', style: 'primary' }] }] },
+    { id: 'gallery', label: 'Галерея', icon: 'fa-regular fa-images', desc: 'Вступление и сетка картинок',
+        blocks: () => [
+            { type: 'text', width: 'narrow', align: 'center', title: T3('[Галерея]', '[Gallery]', '[Галерея]'), body: T3('<p>[Пара слов о картинках]</p>', '<p>[A few words about the images]</p>', '<p>[Кілька слів про зображення]</p>') },
+            { type: 'gallery', title: {}, cols: '3', images: [] }] },
+];
+
 function peCreateDialog() {
     const main = document.getElementById('main');
     main.innerHTML = '';
+    if (!peBooks.length) sb.from('books').select('id,title_ru').order('sort_order').then(r => { peBooks = r.data || []; });
     const slug = el('input', { class: 'input', placeholder: 'например: about' });
-    const title = el('input', { class: 'input', placeholder: 'Об авторе' });
-    title.addEventListener('input', () => { if (!slug.dataset.touched) slug.value = slugify(title.value).replace(/_/g, '-'); });
+    const titles = { ru: el('input', { class: 'input', placeholder: 'Об авторе' }), en: el('input', { class: 'input', placeholder: 'About' }), uk: el('input', { class: 'input', placeholder: 'Про автора' }) };
+    titles.ru.addEventListener('input', () => { if (!slug.dataset.touched) slug.value = slugify(titles.ru.value).replace(/_/g, '-'); });
     slug.addEventListener('input', () => slug.dataset.touched = '1');
+    let tpl = 'blank';
+    const tplBox = el('div', { class: 'pe-tpl-grid' });
+    const drawTpl = () => {
+        tplBox.innerHTML = '';
+        PAGE_TEMPLATES.forEach(t => tplBox.append(el('button', { type: 'button', class: 'pe-tpl' + (t.id === tpl ? ' active' : ''), onclick: () => { tpl = t.id; drawTpl(); } }, [
+            el('i', { class: t.icon }), el('b', { text: t.label }), el('span', { text: t.desc })])));
+    };
+    drawTpl();
+    const inMenu = el('input', { type: 'checkbox' });
     const form = el('form', { class: 'form', onsubmit: async e => {
         e.preventDefault();
         const s = slug.value.trim();
+        if (!titles.ru.value.trim()) { toast('Напишите название страницы', 'err'); return; }
         if (s === 'home') { toast('Адрес home зарезервирован для главной страницы', 'err'); return; }
         if (!SLUG_RE.test(s)) { toast('Адрес: латинские строчные буквы, цифры и дефис, например about или my-world', 'err'); return; }
-        const { data, error } = await sb.from('pages').insert({ slug: s, draft: { title: { ru: title.value.trim() }, seo: {}, blocks: [] } }).select('id').single();
+        const title = {}; Object.entries(titles).forEach(([l, i]) => { if (i.value.trim()) title[l] = i.value.trim(); });
+        const blocks = PAGE_TEMPLATES.find(t => t.id === tpl).blocks().map(b => ({ id: peUid(), ...b }));
+        const { data, error } = await sb.from('pages').insert({ slug: s, draft: { title, seo: {}, blocks } }).select('id').single();
         if (error) { toast(/duplicate/i.test(error.message) ? 'Страница с таким адресом уже есть' : errText(error), 'err'); return; }
+        if (inMenu.checked) await peAddToMenu(s, title);
         peOpen(data.id);
     } }, [
-        el('div', { class: 'field' }, [el('label', { text: 'Название страницы (RU)' }), title]),
+        el('div', { class: 'field' }, [el('label', { text: 'Шаблон' }), tplBox, el('div', { class: 'hint', text: 'Шаблон — это готовый набор блоков. Потом всё можно поменять: добавить, убрать, переставить. Текст в [квадратных скобках] замените своим.' })]),
+        el('div', { class: 'grid-3' }, [
+            el('div', { class: 'field' }, [el('label', { text: 'Название RU' }), titles.ru]),
+            el('div', { class: 'field' }, [el('label', { text: 'Название EN' }), titles.en]),
+            el('div', { class: 'field' }, [el('label', { text: 'Название UK' }), titles.uk])]),
         el('div', { class: 'field' }, [el('label', { text: 'Адрес' }), slug, el('div', { class: 'hint', text: 'Страница будет доступна по адресу /p/адрес. Латиница, цифры и дефис; после создания не меняется.' })]),
+        el('div', { class: 'field' }, [el('label', { class: 'check' }, [inMenu, 'Добавить в меню сайта']),
+            el('div', { class: 'hint', text: 'Пункт меню появится на сайте, когда вы впервые опубликуете страницу. Название пункта = название страницы; поменять можно в «Настройках» → «Меню сайта».' })]),
         el('div', { class: 'form-bottom' }, el('div', { class: 'left' }, [
             el('button', { class: 'btn btn-primary', type: 'submit' }, 'Создать'),
             el('button', { class: 'btn', type: 'button', onclick: renderPages }, 'Отмена')]))]);
     main.append(el('div', { class: 'page-head' }, el('h2', { text: 'Новая страница' })), form);
-    title.focus();
+    titles.ru.focus();
+}
+
+/* ---------- МЕНЮ САЙТА ---------- */
+async function peLoadSite() {
+    const { data, error } = await sb.from('settings').select('value').eq('key', 'site').maybeSingle();
+    if (error) { toast(errText(error), 'err'); return null; }
+    const site = structuredClone((data && data.value) || {});
+    site.menu = Array.isArray(site.menu) ? site.menu : [];
+    return site;
+}
+async function peSaveSite(site) {
+    const { error } = await sb.from('settings').upsert({ key: 'site', value: site, updated_at: new Date().toISOString() });
+    if (error) { toast(errText(error), 'err'); return false; }
+    return true;
+}
+const peMenuItem = (site, slug) => site.menu.find(m => m && String(m.link || '').replace(/^\//, '').replace(/\/$/, '') === `p/${slug}`);
+// Пункт меню для страницы: пока страница не опубликована, он скрыт и включится при публикации
+async function peAddToMenu(slug, title, published = false) {
+    const site = await peLoadSite(); if (!site) return;
+    if (peMenuItem(site, slug)) { toast('Эта страница уже есть в меню (Настройки → Меню сайта)', 'ok'); return; }
+    if (!site.menu.length) {
+        // Меню ещё не настраивалось — переносим стандартные пункты, чтобы они не пропали
+        site.menu = [['index.html', 'Главная', 'Home', 'Головна'], ['blog.html', 'Блог', 'Blog', 'Блог'], ['books.html', 'Книги', 'Books', 'Книги'],
+            ['notes.html', 'Заметки', 'Notes', 'Нотатки'], ['projects.html', 'Проекты', 'Projects', 'Проєкти']].map(([link, ru, en, uk]) => ({ link, label_ru: ru, label_en: en, label_uk: uk }));
+    }
+    site.menu.push({ link: `p/${slug}`, label_ru: title.ru || slug, label_en: title.en || '', label_uk: title.uk || '', hidden: !published, pending_page: !published || undefined });
+    if (await peSaveSite(site)) toast(published ? 'Страница добавлена в меню' : 'Пункт меню появится после публикации', 'ok');
+}
+async function peMenuOnPublish(slug) {
+    const site = await peLoadSite(); if (!site) return;
+    const m = peMenuItem(site, slug);
+    if (!m || !m.pending_page) return;
+    m.hidden = false; delete m.pending_page;
+    if (await peSaveSite(site)) toast('Пункт меню включён', 'ok');
 }
 
 /* ---------- РЕДАКТОР ---------- */
@@ -327,7 +413,10 @@ function peRenderPanel(scrollToOpen) {
         el('summary', {}, [el('i', { class: 'fa-solid fa-gear' }), ' Настройки страницы']),
         peI18nText(PE.draft, 'title', 'Название (вкладка браузера и поиск)'),
         peI18nText((PE.draft.seo = PE.draft.seo || {}), 'description', 'Описание для поисковиков и соцсетей', { textarea: true }),
-        peImage(PE.draft.seo, 'image', 'Картинка для соцсетей')]);
+        peImage(PE.draft.seo, 'image', 'Картинка для соцсетей'),
+        PE.row.slug !== 'home' ? el('div', { class: 'field' }, [el('label', { text: 'Меню сайта' }),
+            el('button', { class: 'btn', type: 'button', onclick: () => peAddToMenu(PE.row.slug, PE.draft.title || {}, !!PE.row.published) }, [el('i', { class: 'fa-solid fa-bars' }), 'Добавить страницу в меню']),
+            el('div', { class: 'hint', text: 'Убрать пункт или поменять порядок — в «Настройках» → «Меню сайта».' })]) : null]);
     panel.append(settings);
 
     // Блоки
@@ -620,6 +709,7 @@ async function pePublish() {
     PE.row = data; peUpdateStatus();
     linkSuggestions = [];
     toast('Опубликовано', 'ok');
+    if (PE.row.slug !== 'home') await peMenuOnPublish(PE.row.slug);
     peRenderShell();
 }
 
@@ -628,6 +718,9 @@ async function peDelete() {
     if (prompt(`Удалить страницу «${name}» навсегда? Она исчезнет с сайта вместе с историей.\nЧтобы подтвердить, введите адрес страницы: ${PE.row.slug}`) !== PE.row.slug) return;
     const { error } = await sb.from('pages').delete().eq('id', PE.row.id);
     if (error) { toast(errText(error), 'err'); return; }
+    // Убираем страницу из меню, чтобы там не осталось битой ссылки
+    const site = await peLoadSite(), slug = PE.row.slug;
+    if (site && peMenuItem(site, slug)) { site.menu = site.menu.filter(m => m !== peMenuItem(site, slug)); await peSaveSite(site); }
     PE = null; linkSuggestions = [];
     toast('Страница удалена', 'ok');
     renderPages();
@@ -687,6 +780,9 @@ async function peUnpublish() {
     const { data, error } = await sb.from('pages').update({ published: null, published_at: null }).eq('id', PE.row.id).select('*').single();
     if (error) { toast(errText(error), 'err'); return; }
     PE.row = data; linkSuggestions = [];
+    // Пункт меню прячем до следующей публикации
+    const site = await peLoadSite(), m = site && peMenuItem(site, PE.row.slug);
+    if (m && !m.hidden) { m.hidden = true; m.pending_page = true; await peSaveSite(site); }
     toast('Страница снята с публикации', 'ok');
     peRenderShell();
 }
