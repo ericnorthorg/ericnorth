@@ -261,7 +261,10 @@
                     </div>
                 `;
                 
-                document.title = (chapter['title_' + window.currentLang] || chapter.title_en) + " | Eric North";
+                // Как в seo-read.js: «Глава — Книга | Eric North», с тем же порядком запасных языков
+                const pickTitle = o => { if (!o) return ''; const order = { en: ['en', 'ru', 'uk'], ru: ['ru', 'en', 'uk'], uk: ['uk', 'en', 'ru'] }[window.currentLang] || ['en', 'ru', 'uk']; for (const l of order) if (o['title_' + l]) return o['title_' + l]; return ''; };
+                const bookTitle = pickTitle((typeof booksDB !== 'undefined' ? booksDB : []).find(b => b.id === bookId));
+                document.title = pickTitle(chapter) + (bookTitle ? ' — ' + bookTitle : '') + ' | Eric North';
 
                 // Применяем сохраненные настройки текста к загруженной главе
                 changeFontFamily(currentFontFamily);

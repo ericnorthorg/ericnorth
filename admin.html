@@ -57,7 +57,7 @@
     .nav-item.active { background: var(--accent); color: #fff; }
     .sidebar .spacer { flex: 1; }
     .sidebar .who { font-size: .8rem; color: #999; padding: 10px 12px; word-break: break-all; }
-    .main { padding: 28px 36px 80px; max-width: 1100px; width: 100%; }
+    .main { padding: 28px 36px 80px; max-width: 1100px; width: 100%; min-width: 0; }
     .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
     .page-head h2 { font-size: 1.5rem; }
     .page-head .sub { color: var(--muted); font-size: .9rem; margin-top: 4px; font-family: 'Inter', sans-serif; }
@@ -231,7 +231,7 @@
     .pe-frame-box { max-width: 100%; height: 100%; transition: width .2s; }
     .pe-frame { width: 100%; height: 100%; border: none; border-radius: 6px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
     @media (max-width: 1100px) {
-        .pe-wrap { grid-template-columns: 1fr; }
+        .pe-wrap { grid-template-columns: minmax(0, 1fr); }
         .pe-panel { max-height: none; overflow: visible; }
         .pe-preview { position: static; }
         .pe-frame-wrap { height: 75vh; }
@@ -243,7 +243,7 @@
     .loading { padding: 40px; text-align: center; color: var(--muted); }
 
     @media (max-width: 800px) {
-        .layout { grid-template-columns: 1fr; }
+        .layout { grid-template-columns: minmax(0, 1fr); } /* колонка не шире экрана, даже если внутри длинная строка */
         .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 12px; }
         .sidebar .brand { width: 100%; padding-bottom: 8px; }
         .nav-item { width: auto; }
@@ -251,6 +251,24 @@
         .main { padding: 20px 14px 60px; }
         .grid-2, .grid-3 { grid-template-columns: 1fr; }
         .img-field { flex-direction: column; }
+        /* Телефон: меню кнопками в несколько строк, ряды и вкладки не вылезают за экран */
+        #nav { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; }
+        .sidebar .nav-item { padding: 7px 10px; gap: 8px; font-size: 14px; }
+        .inline { flex-wrap: wrap; }
+        .img-field .controls { align-self: stretch; min-width: 0; }
+        .lang-tabs { max-width: 100%; overflow-x: auto; }
+        .lang-tabs button { white-space: nowrap; }
+        .main.main-wide { padding: 16px 12px 40px; }
+    }
+    @media (max-width: 600px) {
+        /* Строки списков: название во всю ширину, отметки перевода и кнопки — второй строкой */
+        .row { flex-wrap: wrap; gap: 8px 12px; padding: 12px; }
+        .row .info { flex: 1 1 calc(100% - 70px); }
+        .row .title { white-space: normal; }
+        .row .tr-marks { margin-left: 66px; }
+        .row .actions { margin-left: auto; }
+        .row:not(:has(> .thumb)) .info { flex-basis: 100%; }
+        .row:not(:has(> .thumb)) .tr-marks { margin-left: 0; }
     }
 </style>
 </head>
@@ -295,6 +313,7 @@
 <script src="page-editor.js"></script>
 <script src="pages-guide.js"></script>
 <script src="comments-admin.js"></script>
+<script src="stats-admin.js"></script>
 <script src="media-admin.js"></script>
 <script src="editor-tools.js"></script>
 <script>
@@ -474,10 +493,11 @@ const SECTIONS = {
     pages: { title: 'Страницы', icon: 'fa-solid fa-layer-group', custom: renderPages },
     guide: { title: 'Посібник', icon: 'fa-regular fa-circle-question', custom: renderPagesGuide },
     comments: { title: 'Комментарии', icon: 'fa-regular fa-comments', custom: renderComments },
+    stats: { title: 'Статистика', icon: 'fa-solid fa-chart-line', custom: renderStats },
     media: { title: 'Медиатека', icon: 'fa-regular fa-images', custom: renderMedia },
     settings: { title: 'Настройки', icon: 'fa-solid fa-sliders', custom: renderSettings },
 };
-const NAV_ORDER = ['home', 'pages', 'posts', 'comments', 'books', 'projects', 'notes', 'media', 'settings'];
+const NAV_ORDER = ['home', 'pages', 'posts', 'comments', 'books', 'projects', 'notes', 'media', 'stats', 'settings'];
 
 /* ---------- СОСТОЯНИЕ ---------- */
 let state = { section: null, editLang: 'ru' };

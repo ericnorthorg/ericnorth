@@ -85,10 +85,25 @@ const STATIC_TITLES = {
     '/projects': { en: 'Projects | Eric North', ru: 'Проекты | Eric North', uk: 'Проєкти | Eric North' },
 };
 
+// Подписи кнопок-иконок в шапке (видны при наведении, их читает экранный диктор)
+const ICON_LABELS = {
+    en: { search: 'Search', theme: 'Light / dark theme', close: 'Close' },
+    ru: { search: 'Поиск', theme: 'Светлая / тёмная тема', close: 'Закрыть' },
+    uk: { search: 'Пошук', theme: 'Світла / темна тема', close: 'Закрити' },
+};
+function labelIconButtons(lang) {
+    const t = ICON_LABELS[lang] || ICON_LABELS.en;
+    const set = (sel, text) => document.querySelectorAll(sel).forEach(b => { b.title = text; b.setAttribute('aria-label', text); });
+    set('button[onclick^="toggleSearch"]:not(.close-search)', t.search);
+    set('button.close-search', t.close);
+    set('button[onclick^="toggleTheme"]', t.theme);
+}
+
 // Показывает блоки нужного языка (.lang-ru / .lang-en / .lang-uk).
 // Если у блока нет украинской версии, по-украински показывается английская.
 function toggleLangBlocks(lang) {
     document.documentElement.lang = lang;
+    labelIconButtons(lang);
     const st = STATIC_TITLES[pathWithoutLang().replace(/\/index\.html$/, '/').replace(/\.html$/, '').replace(/(.)\/$/, '$1')];
     if (st && st[lang]) document.title = st[lang];
     SITE_LANGS.forEach(l => {

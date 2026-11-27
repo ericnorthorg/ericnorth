@@ -357,3 +357,130 @@ async function initCMS() {
 }
 
 document.addEventListener('DOMContentLoaded', initCMS);
+
+// 6. ШАПКА НА ТЕЛЕФОНЕ: занимает почти четверть экрана, поэтому при прокрутке вниз
+// уезжает вверх, а при малейшей прокрутке вверх сразу возвращается. В читалке своя
+// компактная шапка — её не трогаем.
+(function autoHideHeader() {
+    if (/^\/((en|ru|uk)\/)?(read\/|reader)/.test(location.pathname)) return;
+    const mq = window.matchMedia('(max-width: 768px)');
+    const st = document.createElement('style');
+    st.textContent = '@media (max-width: 768px) { body > header { transition: transform .25s ease; } body > header.hdr-hidden { transform: translateY(-100%); } }';
+    document.head.appendChild(st);
+    let lastY = window.scrollY, ticking = false;
+    window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+            const h = document.querySelector('body > header');
+            const y = window.scrollY;
+            if (h) {
+                if (!mq.matches || y < h.offsetHeight || y < lastY - 4) h.classList.remove('hdr-hidden');
+                else if (y > lastY + 4) h.classList.add('hdr-hidden');
+            }
+            lastY = y;
+            ticking = false;
+        });
+    }, { passive: true });
+})();
+
+// Ссылка на политику конфиденциальности (страница конструктора /p/privacy) в подвале всех страниц
+(function addPrivacyLink() {
+    const t = { ru: 'Политика конфиденциальности', en: 'Privacy policy', uk: 'Політика конфіденційності' };
+    const cur = typeof detectLang === 'function' ? detectLang() : 'en';
+    document.querySelectorAll('footer .copyright p').forEach(p => {
+        if (p.querySelector('.privacy-link')) return;
+        const a = document.createElement('a');
+        a.className = 'privacy-link';
+        a.href = 'p/privacy';
+        a.style.cssText = 'color:inherit;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;';
+        a.innerHTML = ['ru', 'en', 'uk'].map(l => `<span class="lang-${l}"${l === cur ? '' : ' hidden'}>${t[l]}</span>`).join('');
+        p.append(' · ', a);
+    });
+})();
+
+// 7. ФОРМЫ NETLIFY («Написать автору», подписка): отправка без перехода на другую
+// страницу. Раньше браузер уходил на главную без всякого подтверждения; теперь читатель
+// остаётся на месте и видит «Спасибо» на своём языке. Если скрипт не сработает,
+// форма по-старому отправится обычным способом — письмо всё равно дойдёт.
+const FORM_MSG = {
+    sending: { en: 'Sending…', ru: 'Отправляем…', uk: 'Надсилаємо…' },
+    'author-contact': { en: 'Thank you! Your message has been sent — I will reply by email.', ru: 'Спасибо! Сообщение отправлено — отвечу на email.', uk: 'Дякую! Повідомлення надіслано — відповім на email.' },
+    'subscribe-modal': { en: "Done! You're subscribed.", ru: 'Готово! Вы подписались.', uk: 'Готово! Ви підписалися.' },
+    error: { en: "Couldn't send. Please check your connection and try again.", ru: 'Не получилось отправить. Проверьте интернет и попробуйте ещё раз.', uk: 'Не вдалося надіслати. Перевірте інтернет і спробуйте ще раз.' },
+};
+document.addEventListener('submit', async e => {
+    const form = e.target;
+    const nameInput = form && form.querySelector && form.querySelector('input[name="form-name"]');
+    if (!nameInput || form.getAttribute('action') !== '/' || !window.fetch) return;
+    e.preventDefault();
+    const lang = ['en', 'ru', 'uk'].includes(document.documentElement.lang) ? document.documentElement.lang : 'en';
+    const msg = key => (FORM_MSG[key] || FORM_MSG['author-contact'])[lang];
+    let status = form.querySelector('.form-status');
+    if (!status) {
+        status = document.createElement('p');
+        status.className = 'form-status';
+        status.setAttribute('role', 'status');
+        status.style.cssText = 'margin:12px 0 0;text-align:center;font-weight:600;';
+        form.appendChild(status);
+    }
+    const btn = form.querySelector('[type="submit"]');
+    if (btn) btn.disabled = true;
+    status.style.color = '';
+    status.textContent = msg('sending');
+    try {
+        const res = await fetch('/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(new FormData(form)).toString(),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        form.reset();
+        status.style.color = 'var(--accent-color, #ff6b2b)';
+        status.textContent = msg(nameInput.value);
+    } catch (err) {
+        status.style.color = '#e5484d';
+        status.textContent = msg('error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+});
+
+// 8. СТАТИСТИКА ПОСЕЩЕНИЙ (без cookies, без IP и без идентификаторов читателя)
+// Записывается только: страница, язык, сайт, с которого пришли, тип устройства.
+// Просмотры самого автора (вошедшего в админку в этом браузере) не считаются.
+function trackView() {
+    try {
+        const host = location.hostname;
+        if (!host || host === 'localhost' || host === '127.0.0.1' || location.protocol === 'file:') return;
+        if (navigator.webdriver || /bot|crawl|spider|slurp|headless|lighthouse|preview/i.test(navigator.userAgent || '')) return;
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) return;
+            }
+        } catch (e) {}
+        const m = location.pathname.match(/^\/(en|ru|uk)(?=\/|$)/);
+        let path = (m ? location.pathname.slice(3) : location.pathname) || '/';
+        path = path.replace(/\/index(\.html)?$/, '/').replace(/\.html$/, '').replace(/(.)\/+$/, '$1');
+        try { path = decodeURI(path); } catch (e) {}
+        path = encodeURI(path).slice(0, 200);
+        const lang = m ? m[1] : (typeof detectLang === 'function' ? detectLang() : null);
+        let refHost = null, entry = true;
+        if (document.referrer) {
+            try {
+                const r = new URL(document.referrer).hostname.toLowerCase().replace(/^www\./, '');
+                if (r === host.toLowerCase().replace(/^www\./, '')) entry = false; else refHost = r;
+            } catch (e) {}
+        }
+        const w = Math.min(screen.width || 0, screen.height || 0) || window.innerWidth;
+        const device = w < 600 ? 'mobile' : (w < 1100 && navigator.maxTouchPoints > 0) ? 'tablet' : 'desktop';
+        fetch(`${SUPABASE_URL}/rest/v1/rpc/track_view`, {
+            method: 'POST', keepalive: true,
+            headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_path: path, p_lang: lang, p_ref: refHost, p_device: device, p_entry: entry }),
+        }).catch(() => {});
+    } catch (e) {}
+}
+if (document.prerendering) document.addEventListener('prerenderingchange', trackView, { once: true });
+else window.addEventListener('load', () => setTimeout(trackView, 300), { once: true });
