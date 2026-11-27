@@ -97,15 +97,12 @@ async function renderPages() {
     document.getElementById('main').classList.remove('main-wide');
     const main = document.getElementById('main');
     main.innerHTML = '<div class="loading">Загрузка…</div>';
-    const [{ data: all, error }, set] = await Promise.all([
-        sb.from('pages').select('id,slug,draft,published,published_at,updated_at').order('slug'),
-        sb.from('settings').select('value').eq('key', 'home').maybeSingle()]);
+    const { data: all, error } = await sb.from('pages').select('id,slug,draft,published,published_at,updated_at').order('slug');
     if (state.section !== 'pages') return;
     if (error) { main.innerHTML = ''; toast(errText(error), 'err'); return; }
     main.innerHTML = '';
     const home = all.find(p => p.slug === 'home');
     const data = all.filter(p => p.slug !== 'home');
-    const homeMode = ((set.data || {}).value || {}).mode === 'blocks' ? 'blocks' : 'classic';
     main.append(el('div', { class: 'page-head' }, [
         el('div', {}, [el('h2', { text: 'Страницы' }), el('div', { class: 'sub', text: 'Собственные страницы сайта из блоков: «Об авторе», «Мир», «Персонажи» и любые другие. Адрес страницы — /p/название.' })]),
         el('div', { class: 'inline', style: 'flex-wrap:wrap' }, [
@@ -132,7 +129,7 @@ async function renderPages() {
     });
     };
     drawPages();
-    main.querySelector('.page-head').after(peHomePanel(home, homeMode));
+    main.querySelector('.page-head').after(peHomePanel(home));
     main.append(el('h3', { style: 'margin:26px 0 12px;font-family:Merriweather,serif', text: 'Другие страницы' }));
     if (data.length > 5) main.append(search.bar);
     main.append(list);
@@ -143,80 +140,45 @@ function peStatus(p) {
     return !p.published ? ['Не опубликована', 'hidden-b'] : !peSame(p.draft, p.published) ? ['Есть неопубликованные изменения', 'accent'] : ['Опубликована', ''];
 }
 
-function peHomePanel(home, mode) {
+function peHomePanel(home) {
     const box = el('div', { class: 'pe-card pe-home' }, [
         el('div', { class: 'pe-home-head' }, [el('i', { class: 'fa-solid fa-house' }), el('b', { text: 'Главная страница' })])]);
     if (!home) {
         box.append(
-            el('p', { class: 'hint', text: 'Сейчас главная собирается по-старому: шапка и промо-блоки из раздела «Главная», карточки и форма из «Настроек». Можно сделать её копию из блоков — тогда главную можно будет собирать здесь как любую страницу. Сайт при этом не изменится, пока вы сами не переключите.' }),
-            el('button', { class: 'btn btn-primary', type: 'button', onclick: peCreateHome }, [el('i', { class: 'fa-solid fa-wand-magic-sparkles' }), 'Создать главную из блоков (копия текущей)']));
+            el('p', { class: 'hint', text: 'Главной пока нет — на сайте вместо неё короткая заглушка со ссылками на разделы. Создайте её: появятся шапка, карточки разделов, «Продолжить чтение» и форма «Написать автору».' }),
+            el('button', { class: 'btn btn-primary', type: 'button', onclick: peCreateHome }, [el('i', { class: 'fa-solid fa-wand-magic-sparkles' }), 'Создать главную']));
         return box;
     }
     const st = peStatus(home);
-    box.append(el('div', { class: 'row', style: 'margin:12px 0' }, [
+    box.append(el('div', { class: 'row', style: 'margin:12px 0 0' }, [
         el('div', { class: 'info', onclick: () => peOpen(home.id) }, [
-            el('div', { class: 'title' }, [document.createTextNode('Главная из блоков'), el('span', { class: 'badge ' + st[1], text: st[0] })]),
-            el('div', { class: 'meta', text: `блоков: ${(home.draft.blocks || []).length}` })]),
+            el('div', { class: 'title' }, [document.createTextNode('Главная'), el('span', { class: 'badge ' + st[1], text: st[0] })]),
+            el('div', { class: 'meta', text: `блоков: ${(home.draft.blocks || []).length}` + (home.published ? '' : ' · пока не опубликована — на сайте заглушка') })]),
         trMarks(peTrStatus(home.draft)),
         el('div', { class: 'actions' }, el('button', { class: 'btn', type: 'button', onclick: () => peOpen(home.id) }, [el('i', { class: 'fa-solid fa-pen' }), 'Редактировать']))]));
-    const opt = (val, title, desc) => {
-        const r = el('input', { type: 'radio', name: 'home-mode', value: val }); r.checked = mode === val;
-        r.addEventListener('change', () => peSetHomeMode(val, home, r));
-        return el('label', { class: 'pe-home-opt' + (mode === val ? ' active' : '') }, [r, el('div', {}, [el('b', { text: title }), el('div', { class: 'hint', style: 'margin:2px 0 0', text: desc })])]);
-    };
-    box.append(el('div', { style: 'font-weight:600;margin:16px 0 8px', text: 'Что показывать на сайте:' }),
-        el('div', { class: 'pe-home-opts' }, [
-            opt('classic', 'Классическую главную', 'Как раньше: разделы «Главная» и «Настройки» админки.'),
-            opt('blocks', 'Главную из блоков', 'Опубликованную версию из этого редактора.')]));
     return box;
 }
 
-async function peSetHomeMode(mode, home, radio) {
-    if (mode === 'blocks' && !home.published) {
-        toast('Сначала откройте главную из блоков и опубликуйте её', 'err');
-        renderPages(); return;
-    }
-    const q = mode === 'blocks' ? 'Показать на сайте главную из блоков? Вернуть классическую можно здесь же в любой момент.' : 'Вернуть на сайт классическую главную?';
-    if (!confirm(q)) { renderPages(); return; }
-    const { error } = await sb.from('settings').upsert({ key: 'home', value: { mode }, updated_at: new Date().toISOString() });
-    if (error) { toast(errText(error), 'err'); renderPages(); return; }
-    toast(mode === 'blocks' ? 'На сайте теперь главная из блоков' : 'На сайте снова классическая главная', 'ok');
-    renderPages();
-}
-
-// Копия текущей главной в блоки: шапка, карточки, «продолжить чтение», промо-блоки, форма
+// Новая главная: шапка, карточки разделов, «Продолжить чтение», форма «Написать автору»
 async function peCreateHome() {
-    const [hb, st] = await Promise.all([
-        sb.from('home_blocks').select('*').eq('hidden', false).order('sort_order').order('id'),
-        sb.from('settings').select('value').eq('key', 'site').maybeSingle()]);
-    if (hb.error) { toast(errText(hb.error), 'err'); return; }
-    const site = (st.data || {}).value || {};
-    const L = (o, f, def = {}) => { const r = {}; ['ru', 'en', 'uk'].forEach(l => { const v = o && o[`${f}_${l}`]; r[l] = v != null && String(v).trim() ? String(v) : (def[l] || ''); }); return r; };
-    const blocks = [];
-    const hero = hb.data.find(x => x.kind === 'hero') || {};
-    blocks.push({ id: peUid(), type: 'hero', image: hero.image || '',
-        title: L(hero, 'title', { ru: 'Истории на грани', en: 'Stories on the edge', uk: 'Історії на межі' }),
-        accent: L(hero, 'text', { ru: 'света и тьмы', en: 'of light and dark', uk: 'світла й темряви' }),
-        subtitle: L(hero, 'subline', { ru: 'Добро пожаловать в творческую мастерскую Эрика Норта. Романы, рассказы и лор вселенной от первого лица.', en: "Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand.", uk: 'Ласкаво просимо до творчої майстерні Еріка Норта. Романи, оповідання та лор всесвіту з перших вуст.' }),
-        buttons: [] });
-    const cards = (site.home_cards || []).filter(c => c && !c.hidden);
-    const items = cards.length ? cards.map(c => ({ icon: c.icon || '', title: L(c, 'title'), desc: L(c, 'desc'), link: c.link || '' })) : [
-        { icon: 'fa-solid fa-feather-pointed', title: { ru: 'Истории', en: 'Stories', uk: 'Історії' }, desc: { ru: 'Короткая проза и черновики', en: 'Short fiction and drafts', uk: 'Коротка проза та чернетки' }, link: 'blog.html' },
-        { icon: 'fa-solid fa-book-open', title: { ru: 'Книги', en: 'Books', uk: 'Книги' }, desc: { ru: 'Мои опубликованные романы', en: 'My published novels', uk: 'Мої опубліковані романи' }, link: 'books.html' },
-        { icon: 'fa-regular fa-note-sticky', title: { ru: 'Заметки', en: 'Notes', uk: 'Нотатки' }, desc: { ru: 'Мысли и объявления', en: 'Thoughts and announcements', uk: 'Думки та оголошення' }, link: 'notes.html' },
-        { icon: 'fa-solid fa-diagram-project', title: { ru: 'Проекты', en: 'Projects', uk: 'Проєкти' }, desc: { ru: 'Эксперименты и идеи', en: 'Experiments and ideas', uk: 'Експерименти та ідеї' }, link: 'projects.html' }];
-    blocks.push({ id: peUid(), type: 'cards', title: {}, overlap: true, items });
-    blocks.push({ id: peUid(), type: 'continue_reading' });
-    hb.data.filter(x => x.kind === 'promo').forEach(p => {
-        const text = L(p, 'text'); Object.keys(text).forEach(l => { if (text[l] && !/^\s*</.test(text[l])) text[l] = `<p>${esc(text[l])}</p>`; });
-        blocks.push({ id: peUid(), type: 'image_text', image: p.image || '', title: L(p, 'title'), text, button: { label: L(p, 'btn_text'), link: p.link || '' }, reverse: !!p.reverse });
-    });
-    const ct = site.contact || {};
-    if (ct.enabled !== false) blocks.push({ id: peUid(), type: 'contact', title: L(ct, 'title', { ru: 'Написать автору', en: 'Contact the Author', uk: 'Написати автору' }),
-        desc: L(ct, 'desc', { ru: 'Открыт для предложений по изданию, готов обсудить лор миров или просто поболтать о книгах.', en: 'Open to publishing offers, ready to discuss the lore of worlds, or just chat about books.', uk: 'Відкритий до пропозицій щодо видання, готовий обговорити лор світів або просто поговорити про книги.' }), subject: 'Home page' });
+    const T = (ru, en, uk) => ({ ru, en, uk });
+    const blocks = [
+        { id: peUid(), type: 'hero', image: '', buttons: [],
+            title: T('Истории на грани', 'Stories on the edge', 'Історії на межі'),
+            accent: T('света и тьмы', 'of light and dark', 'світла й темряви'),
+            subtitle: T('Добро пожаловать в творческую мастерскую Эрика Норта. Романы, рассказы и лор вселенной от первого лица.', "Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand.", 'Ласкаво просимо до творчої майстерні Еріка Норта. Романи, оповідання та лор всесвіту з перших вуст.') },
+        { id: peUid(), type: 'cards', title: {}, overlap: true, items: [
+            { icon: 'fa-solid fa-feather-pointed', title: T('Истории', 'Stories', 'Історії'), desc: T('Короткая проза и черновики', 'Short fiction and drafts', 'Коротка проза та чернетки'), link: 'blog.html' },
+            { icon: 'fa-solid fa-book-open', title: T('Книги', 'Books', 'Книги'), desc: T('Мои опубликованные романы', 'My published novels', 'Мої опубліковані романи'), link: 'books.html' },
+            { icon: 'fa-regular fa-note-sticky', title: T('Заметки', 'Notes', 'Нотатки'), desc: T('Мысли и объявления', 'Thoughts and announcements', 'Думки та оголошення'), link: 'notes.html' },
+            { icon: 'fa-solid fa-diagram-project', title: T('Проекты', 'Projects', 'Проєкти'), desc: T('Эксперименты и идеи', 'Experiments and ideas', 'Експерименти та ідеї'), link: 'projects.html' }] },
+        { id: peUid(), type: 'continue_reading' },
+        { id: peUid(), type: 'contact', subject: 'Home page',
+            title: T('Написать автору', 'Contact the Author', 'Написати авторові'),
+            desc: T('Открыт для предложений по изданию, готов обсудить лор миров или просто поболтать о книгах.', 'Open to publishing offers, ready to discuss the lore of worlds, or just chat about books.', 'Відкритий до пропозицій щодо видання, готовий обговорити лор світів або просто поговорити про книги.') }];
     const { data, error } = await sb.from('pages').insert({ slug: 'home', draft: { title: {}, seo: {}, blocks } }).select('id').single();
     if (error) { toast(errText(error), 'err'); return; }
-    toast('Главная из блоков создана. Сайт пока не изменился.', 'ok');
+    toast('Главная создана. Чтобы она появилась на сайте, опубликуйте её.', 'ok');
     peOpen(data.id);
 }
 
@@ -394,7 +356,7 @@ function peRenderShell() {
     const live = el('a', { class: 'btn', href: PE.row.slug === 'home' ? `/${PE.lang}/` : `/${PE.lang}/p/${PE.row.slug}`, target: '_blank', title: 'Открыть опубликованную страницу' }, [el('i', { class: 'fa-solid fa-arrow-up-right-from-square' }), 'На сайте']);
     main.append(el('div', { class: 'pe-top' }, [
         el('div', {}, [
-            el('button', { class: 'link-btn', style: 'margin:0 0 6px', onclick: () => { if (peConfirmLeave()) { PE = null; renderPages(); } }, html: '<i class="fa-solid fa-arrow-left"></i> Все страницы' }),
+            el('button', { class: 'link-btn', style: 'margin:0 0 6px', onclick: () => { if (peConfirmLeave()) { PE = null; if (state.section === 'pages') renderPages(); else go('pages'); } }, html: '<i class="fa-solid fa-arrow-left"></i> Все страницы' }),
             el('h2', {}, [document.createTextNode(Blocks.pick(PE.draft.title, 'ru') || PE.row.slug), el('span', { class: 'meta', style: 'font-size:.85rem;font-family:Inter;color:var(--muted);margin-left:10px', text: '/p/' + PE.row.slug })]),
             PE.statusEl]),
         el('div', { class: 'inline', style: 'flex-wrap:wrap' }, [

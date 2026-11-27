@@ -59,7 +59,28 @@
     .sidebar .who { font-size: .8rem; color: #999; padding: 10px 12px; word-break: break-all; }
     .side-menu { display: flex; flex-direction: column; flex: 1; min-height: 0; }
     .m-title, .m-toggle, .nav-group { display: none; }
-    .main { padding: 28px 36px 80px; max-width: 1100px; width: 100%; min-width: 0; }
+    .main { padding: 28px 40px 80px; width: 100%; min-width: 0; }
+    /* Свёрнутое меню на компьютере: только значки, название — во всплывающей подсказке */
+    .side-collapse { display: none; margin-left: auto; width: 32px; height: 32px; border: none; background: none; color: #9a9a9a; border-radius: 8px; cursor: pointer; font-size: 14px; flex: none; }
+    .side-collapse:hover { background: #2a2a2a; color: #fff; }
+    @media (min-width: 801px) {
+        .m-bar { display: flex; align-items: center; padding: 0 0 22px; }
+        .sidebar .brand { padding: 0 0 0 10px; }
+        .side-collapse { display: block; }
+        .layout { transition: grid-template-columns .2s; }
+        body.side-collapsed .layout { grid-template-columns: 68px 1fr; }
+        body.side-collapsed .sidebar { padding: 22px 10px; }
+        body.side-collapsed .sidebar .brand, body.side-collapsed .nav-label, body.side-collapsed .sidebar .who { display: none; }
+        body.side-collapsed .m-bar { justify-content: center; }
+        body.side-collapsed .side-collapse { margin: 0; }
+        body.side-collapsed .sidebar .nav-item { justify-content: center; padding: 11px 0; position: relative; }
+        body.side-collapsed .nav-badge { position: absolute; top: 3px; right: 3px; padding: 0 5px; font-size: .65rem; }
+    }
+    /* Широкий экран: короткие поля формы — в две колонки, длинные (текст, картинка, списки) — во всю ширину */
+    @media (min-width: 1300px) {
+        form.form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 28px; align-items: start; }
+        form.form > :not(.field), form.form > .field.wide { grid-column: 1 / -1; }
+    }
     .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
     .page-head h2 { font-size: 1.5rem; }
     .page-head .sub { color: var(--muted); font-size: .9rem; margin-top: 4px; font-family: 'Inter', sans-serif; }
@@ -194,11 +215,6 @@
     .pe-home-head { display: flex; gap: 10px; align-items: center; font-size: 1.05rem; margin-bottom: 6px; }
     .pe-home-head i { color: var(--accent); }
     .pe-home .hint { color: var(--muted); font-size: .85rem; margin: 6px 0 14px; }
-    .pe-home-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .pe-home-opt { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; cursor: pointer; }
-    .pe-home-opt.active { border-color: var(--accent); background: var(--accent-soft); }
-    .pe-home-opt input { accent-color: var(--accent); margin-top: 3px; }
-    @media (max-width: 700px) { .pe-home-opts { grid-template-columns: 1fr; } }
     .main.main-wide { max-width: none; padding: 20px 24px 40px; }
     .pe-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
     .pe-top h2 { margin: 0 0 6px; }
@@ -310,14 +326,15 @@
     <aside class="sidebar" id="sidebar">
         <div class="m-bar">
             <div class="brand">ERIC <span>NORTH</span></div>
+            <button type="button" class="side-collapse" id="side-collapse" title="Свернуть меню" aria-label="Свернуть меню"><i class="fa-solid fa-angles-left"></i></button>
             <span class="m-title" id="m-title"></span>
             <button type="button" class="m-toggle" id="m-toggle" aria-label="Меню" aria-expanded="false" aria-controls="side-menu"><i class="fa-solid fa-bars"></i><span class="m-dot" id="m-dot" hidden></span></button>
         </div>
         <div class="side-menu" id="side-menu">
             <nav id="nav"></nav>
             <div class="spacer"></div>
-            <a class="nav-item" href="index.html" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i>Открыть сайт</a>
-            <button class="nav-item" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>Выйти</button>
+            <a class="nav-item" href="index.html" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i><span class="nav-label">Открыть сайт</span></a>
+            <button class="nav-item" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i><span class="nav-label">Выйти</span></button>
             <div class="who" id="who"></div>
         </div>
     </aside>
@@ -412,30 +429,7 @@ const fmtDateTime = iso => new Date(iso).toLocaleString('ru-RU', { day: 'numeric
 const isScheduled = r => r.publish_at && new Date(r.publish_at) > new Date();
 
 const SECTIONS = {
-    home: {
-        title: 'Главная', icon: 'fa-solid fa-house', table: 'home_blocks', key: 'id', ordered: true,
-        sub: 'Шапка (hero) и блоки с картинкой и кнопкой на главной странице',
-        addLabel: 'Добавить блок', newRow: () => ({ kind: 'promo', reverse: false, hidden: false }),
-        rowTitle: r => r.title_ru || '(без заголовка)',
-        rowMeta: r => r.kind === 'hero' ? 'Шапка страницы' : (r.btn_text_ru ? `Кнопка «${r.btn_text_ru}» → ${r.link || '—'}` : 'Без кнопки'),
-        rowBadge: r => r.kind === 'hero' ? 'Шапка' : null,
-        rowImage: r => r.image,
-        canDelete: r => r.kind !== 'hero',
-        fields: r => r.kind === 'hero' ? [
-            { key: 'image', label: 'Фоновая картинка', type: 'image', hint: 'Необязательно. Без картинки шапка остаётся светлой.' },
-            { key: 'title', label: 'Заголовок — обычная часть', type: 'text', i18n: true },
-            { key: 'text', label: 'Заголовок — выделенная цветом часть', type: 'text', i18n: true },
-            { key: 'subline', label: 'Подзаголовок', type: 'textarea', i18n: true },
-        ] : [
-            { key: 'image', label: 'Картинка', type: 'image' },
-            { key: 'title', label: 'Заголовок', type: 'text', i18n: true },
-            { key: 'text', label: 'Текст', type: 'textarea', i18n: true },
-            { key: 'btn_text', label: 'Текст кнопки', type: 'text', i18n: true },
-            { key: 'link', label: 'Куда ведёт кнопка', type: 'link' },
-            { key: 'reverse', label: 'Картинка справа (зеркально)', type: 'bool' },
-            { key: 'hidden', label: 'Скрыть блок', type: 'bool' },
-        ],
-    },
+    home: { title: 'Главная', icon: 'fa-solid fa-house', custom: () => openHomeSection() },
     posts: {
         title: 'Блог', icon: 'fa-solid fa-feather-pointed', table: 'posts', key: 'id', textKey: true, ordered: true,
         sub: 'Пост с ID «featured» показывается в блоге как «Избранное». Скрытые посты не видны в списке, но открываются по прямой ссылке.',
@@ -531,6 +525,21 @@ document.addEventListener('click', e => {
     if (e.target.closest('#m-toggle')) setMobileMenu(!document.getElementById('sidebar').classList.contains('open'));
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setMobileMenu(false); });
+// Компьютер: боковое меню сворачивается до значков; выбор запоминается в этом браузере
+function setSideCollapsed(c) {
+    document.body.classList.toggle('side-collapsed', c);
+    const b = document.getElementById('side-collapse');
+    if (b) {
+        const t = c ? 'Развернуть меню' : 'Свернуть меню';
+        b.title = t; b.setAttribute('aria-label', t);
+        b.querySelector('i').className = c ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left';
+    }
+    try { localStorage.setItem('adminSideCollapsed', c ? '1' : ''); } catch (e) {}
+}
+document.addEventListener('click', e => {
+    if (e.target.closest('#side-collapse')) setSideCollapsed(!document.body.classList.contains('side-collapsed'));
+});
+document.addEventListener('DOMContentLoaded', () => { try { if (localStorage.getItem('adminSideCollapsed') === '1') setSideCollapsed(true); } catch (e) {} });
 
 /* ---------- СОСТОЯНИЕ ---------- */
 let state = { section: null, editLang: 'ru' };
@@ -595,8 +604,8 @@ async function enterApp(session) {
     $('#login-view').hidden = true; $('#app-view').hidden = false;
     $('#who').textContent = session.user.email;
     const nav = $('#nav'); nav.innerHTML = '';
-    NAV_ORDER.forEach(k => nav.append(el('button', { class: 'nav-item', 'data-s': k, style: `--o:${NAV_PHONE_ORDER[k] || 0}`, onclick: () => go(k) },
-        [el('i', { class: SECTIONS[k].icon }), SECTIONS[k].title])));
+    NAV_ORDER.forEach(k => nav.append(el('button', { class: 'nav-item', 'data-s': k, title: SECTIONS[k].title, style: `--o:${NAV_PHONE_ORDER[k] || 0}`, onclick: () => go(k) },
+        [el('i', { class: SECTIONS[k].icon }), el('span', { class: 'nav-label', text: SECTIONS[k].title })])));
     NAV_GROUPS.forEach(([o, t]) => nav.append(el('div', { class: 'nav-group', style: `--o:${o}`, text: t })));
     await loadBlogCategories();
     go(location.hash.slice(1) in SECTIONS ? location.hash.slice(1) : 'home');
@@ -636,6 +645,18 @@ function go(section) {
     setMobileMenu(false);
     const mt = document.getElementById('m-title'); if (mt) mt.textContent = s.title;
     if (s.custom) s.custom(); else renderList(section);
+}
+
+// «Главная» — сразу редактор главной страницы сайта (страница «home» конструктора)
+async function openHomeSection() {
+    const main = $('#main');
+    main.innerHTML = '<div class="loading">Загрузка…</div>';
+    const { data, error } = await sb.from('pages').select('id').eq('slug', 'home').maybeSingle();
+    if (state.section !== 'home') return;
+    if (error) { main.innerHTML = ''; toast(errText(error), 'err'); return; }
+    if (data) return peOpen(data.id);
+    main.innerHTML = '';
+    main.append(el('div', { class: 'page-head' }, el('div', {}, [el('h2', { text: 'Главная' })])), peHomePanel(null));
 }
 
 /* ---------- ССЫЛКИ ДЛЯ ПОДСКАЗОК ---------- */
@@ -924,6 +945,7 @@ function renderField(form, f, row, lang, isNew) {
     const key = lang ? `${f.key}_${lang}` : f.key;
     const val = row[key];
     const wrap = el('div', { class: 'field', 'data-lang-field': lang || undefined });
+    if (['textarea', 'image', 'rich'].includes(f.type) || f.wide) wrap.classList.add('wide'); // во всю ширину формы
     const label = el('label', { text: f.label }, lang ? el('span', { class: 'lang-mark', text: lang.toUpperCase() }) : null);
     let get;
     switch (f.type) {
@@ -1105,7 +1127,8 @@ async function renderSettings() {
     if (error) { toast(errText(error), 'err'); return; }
     if (state.section !== 'settings') return;
     const site = structuredClone(data?.value || {});
-    site.socials = site.socials || []; site.home_cards = site.home_cards || []; site.contact = site.contact || { enabled: true };
+    site.socials = site.socials || [];
+    delete site.home_cards; delete site.contact; // остались от классической главной (удалена 27.11.2026)
     site.menu = site.menu || []; site.theme = site.theme || {};
     main.innerHTML = '';
     main.append(el('div', { class: 'page-head' }, [el('div', {}, [el('h2', { text: 'Настройки' }), el('div', { class: 'sub', text: 'Меню, цвета сайта, соцсети в подвале, карточки-кнопки на главной и блок «Написать автору»' })])]));
@@ -1260,57 +1283,6 @@ async function renderSettings() {
     };
     drawSocials();
     form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.socials.push({ ...SOCIAL_PRESETS[0], url: '' }); drawSocials(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить соцсеть']));
-
-    // Карточки на главной
-    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Карточки-кнопки на главной' })]));
-    form.append(el('div', { class: 'hint', style: 'margin:-6px 0 14px', text: 'Плитки под шапкой главной страницы. Каждая ведёт туда, куда вы укажете.' }));
-    const cardsBox = el('div'); form.append(cardsBox);
-    const textIn = (obj, k, ph) => { const i = el('input', { class: 'input', placeholder: ph || '', value: obj[k] || '' }); i.oninput = () => obj[k] = i.value; return i; };
-    const drawCards = () => {
-        cardsBox.innerHTML = '';
-        site.home_cards.forEach((c, i) => {
-            const iconPrev = el('span', { class: 'icon-preview', html: `<i class="${esc(c.icon)}"></i>` });
-            const sel = el('select', { class: 'input', style: 'max-width:240px' });
-            ICONS.forEach(ic => sel.append(el('option', { value: ic, text: ic.replace(/fa-(solid|regular|brands) fa-/, ''), selected: ic === c.icon })));
-            if (!ICONS.includes(c.icon)) sel.append(el('option', { value: c.icon, text: c.icon, selected: true }));
-            sel.onchange = () => { c.icon = sel.value; iconPrev.innerHTML = `<i class="${esc(c.icon)}"></i>`; };
-            const link = el('input', { class: 'input', list: 'link-options', value: c.link || '', placeholder: 'blog.html' }); link.oninput = () => c.link = link.value.trim();
-            const hid = el('input', { type: 'checkbox' }); hid.checked = !!c.hidden; hid.onchange = () => c.hidden = hid.checked;
-            cardsBox.append(el('div', { class: 'repeater-item' }, [
-                el('div', { class: 'repeater-head' }, [el('span', { text: `Карточка ${i + 1}` }), el('div', { class: 'inline' }, [
-                    el('button', { class: 'btn btn-icon', type: 'button', disabled: i === 0, onclick: () => { [site.home_cards[i - 1], site.home_cards[i]] = [site.home_cards[i], site.home_cards[i - 1]]; drawCards(); } }, el('i', { class: 'fa-solid fa-arrow-up' })),
-                    el('button', { class: 'btn btn-icon', type: 'button', disabled: i === site.home_cards.length - 1, onclick: () => { [site.home_cards[i + 1], site.home_cards[i]] = [site.home_cards[i], site.home_cards[i + 1]]; drawCards(); } }, el('i', { class: 'fa-solid fa-arrow-down' })),
-                    el('button', { class: 'btn btn-icon btn-danger', type: 'button', onclick: () => { if (confirm('Удалить карточку?')) { site.home_cards.splice(i, 1); drawCards(); } } }, el('i', { class: 'fa-solid fa-trash' }))])]),
-                el('div', { class: 'grid-3' }, [
-                    el('div', { class: 'field' }, [el('label', { text: 'Заголовок RU' }), textIn(c, 'title_ru')]),
-                    el('div', { class: 'field' }, [el('label', { text: 'Заголовок EN' }), textIn(c, 'title_en')]),
-                    el('div', { class: 'field' }, [el('label', { text: 'Заголовок UK' }), textIn(c, 'title_uk')]),
-                    el('div', { class: 'field' }, [el('label', { text: 'Подпись RU' }), textIn(c, 'desc_ru')]),
-                    el('div', { class: 'field' }, [el('label', { text: 'Подпись EN' }), textIn(c, 'desc_en')]),
-                    el('div', { class: 'field' }, [el('label', { text: 'Подпись UK' }), textIn(c, 'desc_uk')])]),
-                el('div', { class: 'grid-2' }, [
-                    el('div', { class: 'field' }, [el('label', { text: 'Куда ведёт' }), link]),
-                    el('div', { class: 'field' }, [el('label', { text: 'Иконка' }), el('div', { class: 'inline' }, [iconPrev, sel])])]),
-                el('label', { class: 'check' }, [hid, 'Скрыть карточку'])]));
-        });
-    };
-    drawCards();
-    form.append(el('button', { class: 'btn', type: 'button', onclick: () => { site.home_cards.push({ icon: ICONS[0], title_ru: '', title_en: '', title_uk: '', desc_ru: '', desc_en: '', desc_uk: '', link: '' }); drawCards(); } }, [el('i', { class: 'fa-solid fa-plus' }), 'Добавить карточку']));
-
-    // Контакты
-    const ct = site.contact;
-    form.append(el('h3', { class: 'section-title' }, [el('span', { text: 'Блок «Написать автору» на главной' })]));
-    const en = el('input', { type: 'checkbox' }); en.checked = ct.enabled !== false; en.onchange = () => ct.enabled = en.checked;
-    form.append(el('div', { class: 'field' }, el('label', { class: 'check' }, [en, 'Показывать форму обратной связи'])));
-    const ta = (k) => { const t = el('textarea', { class: 'input' }); t.value = ct[k] || ''; t.oninput = () => ct[k] = t.value; return t; };
-    form.append(el('div', { class: 'grid-3' }, [
-        el('div', { class: 'field' }, [el('label', { text: 'Заголовок RU' }), textIn(ct, 'title_ru')]),
-        el('div', { class: 'field' }, [el('label', { text: 'Заголовок EN' }), textIn(ct, 'title_en')]),
-        el('div', { class: 'field' }, [el('label', { text: 'Заголовок UK' }), textIn(ct, 'title_uk')]),
-        el('div', { class: 'field' }, [el('label', { text: 'Текст RU' }), ta('desc_ru')]),
-        el('div', { class: 'field' }, [el('label', { text: 'Текст EN' }), ta('desc_en')]),
-        el('div', { class: 'field' }, [el('label', { text: 'Текст UK' }), ta('desc_uk')])]));
-    form.append(el('div', { class: 'hint', html: 'Сообщения из формы приходят в Netlify: проект ericnorth → <b>Forms</b>. Там же можно включить уведомления на почту.' }));
 
     form.append(el('div', { class: 'form-bottom' }, el('div', { class: 'left' }, el('button', { class: 'btn btn-primary', type: 'submit' }, [el('i', { class: 'fa-solid fa-floppy-disk' }), 'Сохранить настройки']))));
 

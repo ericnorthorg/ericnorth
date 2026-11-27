@@ -10,7 +10,6 @@ let booksDB = [];
 let notesDB = [];
 let postsDB = {};
 let chaptersDB = [];
-let homeDB = [];
 let siteSettings = {};
 
 // 1. СПИННЕР (показывается, только если загрузка заметно затянулась)
@@ -97,15 +96,6 @@ function applyData(t) {
         [f + '_en']: str(o[f + '_en']) || str(o[f + '_ru']),
         [f + '_uk']: str(o[f + '_uk']) || str(o[f + '_en']) || str(o[f + '_ru'])
     });
-
-    // Главная: hero + промо-блоки (id 'hero', 'promo1', 'promo2'... как раньше в таблице)
-    let promoN = 0;
-    homeDB = t.home.map(b => ({
-        image: str(b.image), link: str(b.link),
-        ...tr(b, 'title'), ...tr(b, 'text'), ...tr(b, 'subline'), ...tr(b, 'btn_text'),
-        id: b.kind === 'hero' ? 'hero' : 'promo' + (++promoN),
-        reverse: b.reverse ? 'TRUE' : 'FALSE'
-    }));
 
     postsDB = {};
     t.posts.forEach(p => {
@@ -258,30 +248,6 @@ function applySettings() {
         });
     }
 
-    const cardsBox = document.querySelector('.featured-cards-container:not(.blk-cards-grid)');
-    if (cardsBox && Array.isArray(site.home_cards)) {
-        cardsBox.innerHTML = site.home_cards.filter(c => c && !c.hidden).map(c => `
-            <a href="${esc(c.link || '#')}" class="link-card">
-                <i class="${esc(c.icon || 'fa-solid fa-star')}"></i>
-                <h3><span class="lang-ru">${esc(c.title_ru)}</span><span class="lang-en" hidden>${esc(c.title_en || c.title_ru)}</span><span class="lang-uk" hidden>${esc(c.title_uk || c.title_en || c.title_ru)}</span></h3>
-                <p><span class="lang-ru">${esc(c.desc_ru)}</span><span class="lang-en" hidden>${esc(c.desc_en || c.desc_ru)}</span><span class="lang-uk" hidden>${esc(c.desc_uk || c.desc_en || c.desc_ru)}</span></p>
-            </a>`).join('');
-        cardsBox.style.display = cardsBox.innerHTML.trim() ? '' : 'none';
-    }
-
-    const contact = site.contact;
-    const contactSection = document.querySelector('.contact-section:not(.blk-contact)');
-    if (contactSection && contact) {
-        contactSection.style.display = contact.enabled === false ? 'none' : '';
-        if (typeof translations !== 'undefined') {
-            ['ru', 'en', 'uk'].forEach(l => {
-                if (!translations[l]) return;
-                if (contact['title_' + l]) translations[l].contact_title = contact['title_' + l];
-                if (contact['desc_' + l]) translations[l].contact_desc = contact['desc_' + l];
-            });
-        }
-    }
-
     if (typeof setLanguage === 'function' && typeof currentLang !== 'undefined') setLanguage(currentLang);
 }
 
@@ -371,7 +337,7 @@ function loadPostTexts() {
 // сразу из кеша, а свежие данные загружаются параллельно. Если в базе что-то изменилось,
 // страница тихо перерисовывается (обработчики db-ready сначала очищают свои блоки).
 // Пост, глава в читалке и предпросмотр админки кеш не используют — им нужен свежий полный текст.
-const CMS_CACHE_KEY = 'cmsCache:v1';
+const CMS_CACHE_KEY = 'cmsCache:v2';
 const CMS_CACHE_MAX_AGE = 7 * 24 * 3600 * 1000;
 function cmsCacheAllowed() {
     const p = window.location.pathname;
@@ -388,7 +354,7 @@ function cmsCacheRead() {
 // В кеш — только то, что одинаково для всех страниц (без полных текстов постов и глав)
 function cmsCacheShape(t) {
     return {
-        home: t.home, books: t.books, projects: t.projects, notes: t.notes, settings: t.settings,
+        books: t.books, projects: t.projects, notes: t.notes, settings: t.settings,
         posts: t.posts.map(p => { const c = { ...p }; delete c.body_ru; delete c.body_en; delete c.body_uk; return c; }),
         chapters: t.chapters.map(c => ({ book_id: c.book_id, chapter_num: c.chapter_num, title_ru: c.title_ru, title_en: c.title_en, title_uk: c.title_uk })),
     };
@@ -398,14 +364,13 @@ function cmsCacheWrite(shape) {
 }
 function cmsFetchAll() {
     return Promise.all([
-        fetchTable('home_blocks', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
         fetchPosts(),
         fetchTable('books', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
         fetchChapters(),
         fetchTable('projects', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
         fetchTable('notes', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
         fetchTable('settings', 'select=key,value')
-    ]).then(([home, posts, books, chapters, projects, notes, settings]) => ({ home, posts, books, chapters, projects, notes, settings }));
+    ]).then(([posts, books, chapters, projects, notes, settings]) => ({ posts, books, chapters, projects, notes, settings }));
 }
 function cmsRender(t) {
     applyData(t);

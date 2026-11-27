@@ -113,14 +113,14 @@
     </style>
     <link rel="stylesheet" href="blocks.css">
     <style>
-        /* Главная из блоков (включается в админке: Страницы → Главная) */
-        #home-blocks { display: none; }
-        html.home-blocks #home-blocks { display: block; }
-        html.home-blocks main > :not(#home-blocks) { display: none !important; }
+        /* Главная собирается из блоков (Админка → «Главная»); пока блоки грузятся — место под них, чтобы подвал не прыгал */
+        #home-blocks:empty { min-height: 80vh; }
+        .home-fallback { max-width: 700px; margin: 0 auto; padding: 120px 20px; text-align: center; }
+        .home-fallback h1 { font-family: 'Merriweather', serif; font-size: 2rem; margin-bottom: 24px; }
+        .home-fallback nav { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     </style>
 
     <script>
-        try { if (localStorage.getItem('homeMode') === 'blocks' && localStorage.getItem('homePage')) document.documentElement.classList.add('home-blocks'); } catch (e) { }
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
@@ -174,76 +174,12 @@
 
     <main>
         <div id="home-blocks"></div>
-        <div class="hero-section" id="hero-section">
-            <div class="hero-overlay"></div>
-            <div class="hero-content">
-                <h1 class="hero-title-large" id="hero-title">
-                    <span class="lang-ru">Истории на грани <span style="color: var(--accent-color);">света и тьмы</span></span>
-                    <span class="lang-en" hidden>Stories on the edge <span style="color: var(--accent-color);">of light and dark</span></span><span class="lang-uk" hidden>Історії на межі <span style="color: var(--accent-color);">світла й темряви</span></span>
-                </h1>
-                <p class="hero-subtitle" id="hero-subtitle">
-                    <span class="lang-ru">Добро пожаловать в творческую мастерскую Эрика Норта. Романы, рассказы и лор вселенной от первого лица.</span>
-                    <span class="lang-en" hidden>Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand.</span><span class="lang-uk" hidden>Ласкаво просимо до творчої майстерні Еріка Норта. Романи, оповідання та лор всесвіту з перших вуст.</span>
-                </p>
-            </div>
-        </div>
-        
-        <div class="featured-cards-container">
-            <a href="blog.html" class="link-card">
-                <i class="fa-solid fa-feather-pointed"></i>
-                <h3 data-translate="blog_card">Истории</h3>
-                <p data-translate="stories_desc">Короткая проза и черновики</p>
-            </a>
-            <a href="books.html" class="link-card">
-                <i class="fa-solid fa-book-open"></i>
-                <h3 data-translate="books">Книги</h3>
-                <p data-translate="books_desc">Мои опубликованные романы</p>
-            </a>
-            <a href="notes.html" class="link-card">
-                <i class="fa-regular fa-note-sticky"></i>
-                <h3 data-translate="notes">Заметки</h3>
-                <p data-translate="notes_desc">Мысли и объявления</p>
-            </a>
-            <a href="projects.html" class="link-card">
-                <i class="fa-solid fa-diagram-project"></i>
-                <h3 data-translate="projects">Проекты</h3>
-                <p data-translate="projects_desc">Эксперименты и идеи</p>
-            </a>
-        </div>
-
-        <div id="continue-reading-container" style="max-width: 1200px; margin: 0 auto; padding: 0 20px; width: 100%;"></div>
-
-        <div id="promo-container"></div>
-        
-        <section class="contact-section">
-            <div class="contact-container">
-                <h2 class="contact-title" data-translate="contact_title">Написать автору</h2>
-                <p class="contact-desc" data-translate="contact_desc">Открыт для предложений по изданию, готов обсудить лор миров или просто поболтать о книгах.</p>
-                
-                <form name="author-contact" method="POST" data-netlify="true" class="contact-form" action="/" netlify-honeypot="bot-field">
-                    <input type="hidden" name="form-name" value="author-contact" />
-                    <div hidden><input name="bot-field" /></div>
-
-                    <div class="form-row">
-                        <input type="text" name="Имя" class="contact-input" id="contact-name" placeholder="Ваше имя" required>
-                        <input type="email" name="Email" class="contact-input" id="contact-email" placeholder="Ваш Email" required>
-                    </div>
-
-                    <select name="Тема обращения" class="contact-select" required>
-                        <option value="" disabled selected id="subj-default">Выберите тему...</option>
-                        <option value="Cooperation" id="subj-1">Сотрудничество</option>
-                        <option value="Book Review" id="subj-2">Отзыв о книгах</option>
-                        <option value="Universe Questions" id="subj-3">Вопросы по вселенной</option>
-                        <option value="Other" id="subj-4">Иное</option>
-                    </select>
-
-                    <textarea name="Сообщение" class="contact-textarea" id="contact-message" placeholder="Ваше сообщение..." required></textarea>
-
-                    <button type="submit" class="contact-submit" data-translate="contact_send">Отправить сообщение</button>
-                </form>
-            </div>
-        </section>
-        
+        <!-- Оповещение для Netlify Forms: форма «Написать автору» рисуется скриптом (блок «Форма»),
+             а Netlify принимает письма только от форм, найденных в HTML при деплое. Поля — как в blocks.js. -->
+        <form name="author-contact" data-netlify="true" netlify-honeypot="bot-field" hidden>
+            <input type="hidden" name="form-name" value="author-contact"><input name="bot-field">
+            <input name="Имя"><input name="Email" type="email"><select name="Тема обращения"><option>Other</option></select><textarea name="Сообщение"></textarea>
+        </form>
     </main>
 
     <footer>
@@ -381,128 +317,50 @@
             }
         });
 
-        document.addEventListener('db-ready', () => {
-            const lastBookId = localStorage.getItem('lastReadBook');
-            const lastChapterNum = localStorage.getItem('lastReadChapter');
-
-            if (lastBookId && lastChapterNum && typeof chaptersDB !== 'undefined' && typeof booksDB !== 'undefined') {
-                const book = booksDB.find(b => b.id === lastBookId);
-                const chapter = chaptersDB.find(ch => ch.book_id === lastBookId && parseInt(ch.chapter_num, 10) === parseInt(lastChapterNum, 10));
-
-                if (book && chapter) {
-                    const contContainer = document.getElementById('continue-reading-container');
-                    contContainer.innerHTML = `
-                        <div style="background-color: var(--card-bg); border: 1px solid var(--accent-color); border-radius: 12px; padding: 20px 30px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; box-shadow: 0 5px 15px rgba(255, 80, 10, 0.1);">
-                            <div>
-                                <div style="font-size: 0.85rem; text-transform: uppercase; color: var(--accent-color); font-weight: 700; margin-bottom: 5px;">
-                                    <span class="lang-ru">Вы остановились на:</span><span class="lang-en" hidden>You left off at:</span><span class="lang-uk" hidden>Ви зупинилися на:</span>
-                                </div>
-                                <h3 style="margin: 0; font-family: 'Merriweather', serif; font-size: 1.3rem; color: var(--text-color);">
-                                    <span class="lang-ru">${book.title_ru} — ${chapter.title_ru}</span>
-                                    <span class="lang-en" hidden>${book.title_en} — ${chapter.title_en}</span><span class="lang-uk" hidden>${book.title_uk} — ${chapter.title_uk}</span>
-                                </h3>
-                            </div>
-                            <a href="read/${lastBookId}/${lastChapterNum}" style="background-color: var(--accent-color); color: white; padding: 10px 25px; border-radius: 30px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: transform 0.2s; text-decoration: none;">
-                                <span class="lang-ru">Продолжить чтение</span><span class="lang-en" hidden>Continue Reading</span><span class="lang-uk" hidden>Продовжити читання</span> <i class="fa-solid fa-book-open"></i>
-                            </a>
-                        </div>
-                    `;
-                }
-            }
-
-            if (typeof homeDB !== 'undefined') {
-                const heroData = homeDB.find(item => item.id === 'hero');
-                if (heroData) {
-                    const heroSection = document.getElementById('hero-section');
-                    if (heroData.image) heroSection.style.backgroundImage = `url('${heroData.image}')`;
-                    
-                    const titleContainer = document.getElementById('hero-title');
-                    // Обновленный скрипт с проверкой на новые колонки (с дефолтным текстом)
-                    titleContainer.innerHTML = `
-                        <span class="lang-ru">${heroData.title_ru || 'Истории на грани'} <span style="color: var(--accent-color);">${heroData.text_ru || 'света и тьмы'}</span></span>
-                        <span class="lang-en" hidden>${heroData.title_en || 'Stories on the edge'} <span style="color: var(--accent-color);">${heroData.text_en || 'of light and dark'}</span></span><span class="lang-uk" hidden>${heroData.title_uk || 'Історії на межі'} <span style="color: var(--accent-color);">${heroData.text_uk || 'світла й темряви'}</span></span>
-                    `;
-
-                    const subtitleContainer = document.getElementById('hero-subtitle');
-                    if (subtitleContainer) {
-                        subtitleContainer.innerHTML = `
-                            <span class="lang-ru">${heroData.subline_ru || 'Добро пожаловать в творческую мастерскую Эрика Норта. Романы, рассказы и лор вселенной от первого лица.'}</span>
-                            <span class="lang-en" hidden>${heroData.subline_en || "Welcome to Eric North's creative workshop. Novels, short fiction, and universe lore firsthand."}</span><span class="lang-uk" hidden>${heroData.subline_uk || "Ласкаво просимо до творчої майстерні Еріка Норта. Романи, оповідання та лор всесвіту з перших вуст."}</span>
-                        `;
-                    }
-                }
-
-                const promoContainer = document.getElementById('promo-container');
-                if (promoContainer) {
-                    promoContainer.innerHTML = '';
-                    const promos = homeDB.filter(item => item.id && item.id.startsWith('promo'));
-                    
-                    promos.forEach(promo => {
-                        const isReverse = (promo.reverse === 'true' || promo.reverse === 'TRUE') ? 'reverse' : '';
-                        
-                        const promoHtml = `
-                            <div class="promo-section ${isReverse}">
-                                <div class="promo-image-wrapper">
-                                    <img src="${promo.image}" alt="${altText(promo.title_ru, promo.title_en, promo.title_uk)}" class="promo-image" loading="lazy">
-                                </div>
-                                <div class="promo-content">
-                                    <div class="lang-ru">
-                                        <h2 class="promo-title">${promo.title_ru}</h2>
-                                        <p class="promo-text">${promo.text_ru}</p>
-                                        <a href="${promo.link}" class="btn-primary">${promo.btn_text_ru} <i class="fa-solid fa-arrow-right"></i></a>
-                                    </div>
-                                    <div class="lang-en" hidden>
-                                        <h2 class="promo-title">${promo.title_en}</h2>
-                                        <p class="promo-text">${promo.text_en}</p>
-                                        <a href="${promo.link}" class="btn-primary">${promo.btn_text_en} <i class="fa-solid fa-arrow-right"></i></a>
-                                    </div>
-                                    <div class="lang-uk" hidden>
-                                        <h2 class="promo-title">${promo.title_uk}</h2>
-                                        <p class="promo-text">${promo.text_uk}</p>
-                                        <a href="${promo.link}" class="btn-primary">${promo.btn_text_uk} <i class="fa-solid fa-arrow-right"></i></a>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        promoContainer.innerHTML += promoHtml;
-                    });
-                }
-                setLanguage(currentLang);
-            }
-        });
-
-        // --- Главная из блоков ---
-        // Режим хранится в настройках (settings.home.mode). Если включены блоки и страница
-        // «home» опубликована — показываем её вместо классической главной. Иначе всё как раньше.
+        // --- Главная: страница «home» из конструктора (Админка → «Главная») ---
+        // Сначала показываем сохранённую в браузере копию (мгновенно), затем свежую из базы.
         (function () {
             const box = document.getElementById('home-blocks');
             const baseSetLanguage = setLanguage;
             setLanguage = function (lang) { baseSetLanguage(lang); Blocks.applyLang(box, lang); };
+            let current = null;
             function showBlocks(content) {
+                current = content;
                 box.innerHTML = Blocks.render(content.blocks);
-                document.documentElement.classList.add('home-blocks');
                 setLanguage(currentLang);
                 if (typeof localizeLinks === 'function') localizeLinks();
             }
-            function showClassic() {
-                document.documentElement.classList.remove('home-blocks');
-                box.innerHTML = '';
-                try { localStorage.removeItem('homeMode'); localStorage.removeItem('homePage'); } catch (e) { }
+            // Если главную сняли с публикации — короткое сообщение со ссылками на разделы
+            function showFallback() {
+                current = null;
+                const t = (ru, en, uk) => `<span class="lang-ru">${ru}</span><span class="lang-en" hidden>${en}</span><span class="lang-uk" hidden>${uk}</span>`;
+                box.innerHTML = `<section class="home-fallback"><h1>${t('Эрик Норт', 'Eric North', 'Ерік Норт')}</h1><nav>
+                    <a class="btn-primary" href="books.html">${t('Книги', 'Books', 'Книги')}</a>
+                    <a class="btn-primary" href="blog.html">${t('Блог', 'Blog', 'Блог')}</a>
+                    <a class="btn-primary" href="notes.html">${t('Заметки', 'Notes', 'Нотатки')}</a></nav></section>`;
+                setLanguage(currentLang);
+                if (typeof localizeLinks === 'function') localizeLinks();
             }
-            let cached = null;
-            try { if (localStorage.getItem('homeMode') === 'blocks') cached = JSON.parse(localStorage.getItem('homePage') || 'null'); } catch (e) { }
-            if (cached && cached.blocks) showBlocks(cached);
-            const pageReq = fetch(`${SUPABASE_URL}/rest/v1/pages?select=published&slug=eq.home&published=not.is.null`, { headers: { apikey: SUPABASE_KEY } })
-                .then(r => r.ok ? r.json() : null).catch(() => null);
-            document.addEventListener('db-ready', async () => {
+            let cachedStr = null;
+            try { localStorage.removeItem('homeMode'); cachedStr = localStorage.getItem('homePage'); } catch (e) { }
+            try { const c = cachedStr && JSON.parse(cachedStr); if (c && Array.isArray(c.blocks)) showBlocks(c); } catch (e) { }
+            fetch(`${SUPABASE_URL}/rest/v1/pages?select=published&slug=eq.home&published=not.is.null&apikey=${encodeURIComponent(SUPABASE_KEY)}`)
+                .then(r => r.ok ? r.json() : null).catch(() => null)
+                .then(rows => {
+                    const content = rows && rows[0] && rows[0].published;
+                    if (content && Array.isArray(content.blocks)) {
+                        const str = JSON.stringify(content);
+                        if (str !== cachedStr) showBlocks(content);
+                        try { localStorage.setItem('homePage', str); } catch (e) { }
+                    } else if (rows) {
+                        showFallback();
+                        try { localStorage.removeItem('homePage'); } catch (e) { }
+                    } else if (!current) showFallback();
+                });
+            // Блоки с данными сайта (посты, книги, «продолжить чтение») перерисовываются, когда данные загружены
+            document.addEventListener('db-ready', () => {
                 Blocks.state.dataReady = true;
-                const mode = ((typeof siteSettings !== 'undefined' && siteSettings.home) || {}).mode;
-                if (mode !== 'blocks') { showClassic(); return; }
-                const rows = await pageReq;
-                const content = rows && rows[0] && rows[0].published;
-                if (!content || !Array.isArray(content.blocks)) { if (rows) showClassic(); return; }
-                showBlocks(content);
-                try { localStorage.setItem('homeMode', 'blocks'); localStorage.setItem('homePage', JSON.stringify(content)); } catch (e) { }
+                if (current && Blocks.needsData(current.blocks)) showBlocks(current);
             });
         })();
 
