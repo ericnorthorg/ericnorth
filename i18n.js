@@ -19,11 +19,8 @@ function detectLang() {
     let saved = null;
     try { saved = localStorage.getItem('lang'); } catch (e) {}
     if (VISIBLE_LANGS.includes(saved)) return saved;
-    // Первый визит без языка в адресе: язык браузера, если он есть на сайте
-    const browser = (navigator.languages || [navigator.language || ''])
-        .map(l => String(l).slice(0, 2).toLowerCase())
-        .find(l => VISIBLE_LANGS.includes(l));
-    return browser || DEFAULT_LANG;
+    // Первый визит без языка в адресе и без выбранного языка — всегда английский (решение автора, 27.11.2026)
+    return DEFAULT_LANG;
 }
 
 // Адрес текущей страницы без языкового префикса: /ru/blog.html -> /blog.html

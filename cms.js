@@ -80,7 +80,8 @@ function hideSpinner() {
 
 // 2. ЗАГРУЗКА ТАБЛИЦ
 function fetchTable(table, query) {
-    return fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: { apikey: SUPABASE_KEY } })
+    // Ключ — в адресе (он публичный): так браузер не делает лишний предварительный запрос (CORS preflight)
+    return fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}&apikey=${encodeURIComponent(SUPABASE_KEY)}`)
         .then(res => {
             if (!res.ok) throw new Error(`${table}: HTTP ${res.status}`);
             return res.json();
@@ -108,6 +109,8 @@ function applyData(t) {
 
     postsDB = {};
     t.posts.forEach(p => {
+        // Полный текст есть только у открытого поста; у остальных вместо него короткое превью (excerpt_*)
+        if (p.body_ru === undefined) ['ru', 'en', 'uk'].forEach(l => { p['body_' + l] = p['excerpt_' + l]; });
         postsDB[p.id] = {
             id: p.id, hidden: !!p.hidden, category: str(p.category), image: str(p.image),
             meta_ru: str(p.meta_ru), meta_en: str(p.meta_en), meta_uk: str(p.meta_uk) || str(p.meta_en),
@@ -330,28 +333,107 @@ function loadChapterTexts() {
     return chapterTextsPromise;
 }
 
+// Посты: списки получают только короткое превью текста (excerpt_* считает база), полный текст —
+// только открытый пост (/post/<id>), а для поиска — все тексты при первом запросе (loadPostTexts).
+const POST_META = 'id,sort_order,hidden,category,image,meta_ru,meta_en,meta_uk,title_ru,title_en,title_uk,publish_at,updated_at,excerpt_ru,excerpt_en,excerpt_uk';
+let postTextsLoaded = false;
+async function fetchPosts() {
+    const id = (window.location.pathname.match(/\/post\/([A-Za-z0-9_-]+)/) || [])[1]
+        || (/\/posts(\.html)?$/.test(window.location.pathname) ? new URLSearchParams(window.location.search).get('id') : null);
+    const [meta, current] = await Promise.all([
+        fetchTable('posts', `select=${POST_META}&order=sort_order.asc,id.asc`),
+        id ? fetchTable('posts', `select=id,body_ru,body_en,body_uk&id=eq.${encodeURIComponent(id)}`) : Promise.resolve([])
+    ]);
+    return meta.map(p => {
+        const full = current.find(x => x.id === p.id);
+        return full ? { ...p, body_ru: full.body_ru, body_en: full.body_en, body_uk: full.body_uk } : p;
+    });
+}
+let postTextsPromise = null;
+function loadPostTexts() {
+    if (postTextsLoaded) return Promise.resolve();
+    if (!postTextsPromise) {
+        postTextsPromise = fetchTable('posts', 'select=id,body_ru,body_en,body_uk')
+            .then(rows => {
+                rows.forEach(r => {
+                    const p = postsDB[r.id];
+                    if (p) { p.body_ru = str(r.body_ru); p.body_en = str(r.body_en) || str(r.body_ru); p.body_uk = str(r.body_uk) || p.body_en; }
+                });
+                postTextsLoaded = true;
+            })
+            .catch(err => { postTextsPromise = null; console.error('Не удалось загрузить тексты постов:', err); });
+    }
+    return postTextsPromise;
+}
+
 // 5. ГЛАВНАЯ ЛОГИКА
-async function initCMS() {
-    const spinnerTimer = setTimeout(showSpinner, 400);
+// Данные сайта кешируются в браузере: при переходе между страницами содержимое показывается
+// сразу из кеша, а свежие данные загружаются параллельно. Если в базе что-то изменилось,
+// страница тихо перерисовывается (обработчики db-ready сначала очищают свои блоки).
+// Пост, глава в читалке и предпросмотр админки кеш не используют — им нужен свежий полный текст.
+const CMS_CACHE_KEY = 'cmsCache:v1';
+const CMS_CACHE_MAX_AGE = 7 * 24 * 3600 * 1000;
+function cmsCacheAllowed() {
+    const p = window.location.pathname;
+    return !/\/(post\/|posts(\.html)?$|read\/|reader(\.html)?$)/.test(p) && !new URLSearchParams(window.location.search).has('preview');
+}
+function cmsCacheRead() {
     try {
-        const [home, posts, books, chapters, projects, notes, settings] = await Promise.all([
-            fetchTable('home_blocks', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
-            fetchTable('posts', 'select=*&order=sort_order.asc,id.asc'),
-            fetchTable('books', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
-            fetchChapters(),
-            fetchTable('projects', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
-            fetchTable('notes', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
-            fetchTable('settings', 'select=key,value')
-        ]);
-        applyData({ home, posts, books, chapters, projects, notes, settings });
-        applySettings();
-        // Даем команду сайту рисовать контент
-        document.dispatchEvent(new Event('db-ready'));
+        const raw = localStorage.getItem(CMS_CACHE_KEY);
+        const c = raw && JSON.parse(raw);
+        if (c && c.t && Date.now() - c.t < CMS_CACHE_MAX_AGE && c.d) return JSON.stringify(c.d);
+    } catch (e) {}
+    return null;
+}
+// В кеш — только то, что одинаково для всех страниц (без полных текстов постов и глав)
+function cmsCacheShape(t) {
+    return {
+        home: t.home, books: t.books, projects: t.projects, notes: t.notes, settings: t.settings,
+        posts: t.posts.map(p => { const c = { ...p }; delete c.body_ru; delete c.body_en; delete c.body_uk; return c; }),
+        chapters: t.chapters.map(c => ({ book_id: c.book_id, chapter_num: c.chapter_num, title_ru: c.title_ru, title_en: c.title_en, title_uk: c.title_uk })),
+    };
+}
+function cmsCacheWrite(shape) {
+    try { localStorage.setItem(CMS_CACHE_KEY, JSON.stringify({ t: Date.now(), d: shape })); } catch (e) {}
+}
+function cmsFetchAll() {
+    return Promise.all([
+        fetchTable('home_blocks', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
+        fetchPosts(),
+        fetchTable('books', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
+        fetchChapters(),
+        fetchTable('projects', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
+        fetchTable('notes', 'select=*&hidden=eq.false&order=sort_order.asc,id.asc'),
+        fetchTable('settings', 'select=key,value')
+    ]).then(([home, posts, books, chapters, projects, notes, settings]) => ({ home, posts, books, chapters, projects, notes, settings }));
+}
+function cmsRender(t) {
+    applyData(t);
+    applySettings();
+    document.dispatchEvent(new Event('db-ready'));
+}
+// Запросы к базе стартуют сразу, не дожидаясь, пока браузер дочитает страницу
+const cmsFreshPromise = cmsFetchAll();
+cmsFreshPromise.catch(() => {});
+
+async function initCMS() {
+    const cachedStr = cmsCacheAllowed() ? cmsCacheRead() : null;
+    if (cachedStr) {
+        try { cmsRender(JSON.parse(cachedStr)); }
+        catch (e) { console.error('Кеш данных не подошёл:', e); }
+    }
+    const spinnerTimer = cachedStr ? null : setTimeout(showSpinner, 400);
+    try {
+        const fresh = await cmsFreshPromise;
+        const shape = cmsCacheShape(fresh);
+        cmsCacheWrite(shape);
+        // Без кеша — обычная отрисовка; с кешем — перерисовка, только если данные изменились
+        if (!cachedStr || JSON.stringify(shape) !== cachedStr) cmsRender(fresh);
     } catch (error) {
         console.error('Ошибка загрузки данных из CMS:', error);
-        showLoadError();
+        if (!cachedStr) showLoadError();
     } finally {
-        clearTimeout(spinnerTimer);
+        if (spinnerTimer) clearTimeout(spinnerTimer);
         hideSpinner();
     }
 }

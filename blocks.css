@@ -89,6 +89,8 @@ html[lang="ru"] .blk-in-ru, html[lang="en"] .blk-in-en, html[lang="uk"] .blk-in-
 @media (max-width: 640px) { .blk-gallery-grid { grid-template-columns: 1fr 1fr; } .blk-feed-grid, .blk-projects-grid { grid-template-columns: 1fr; } .blk-book { grid-template-columns: 1fr; } .blk-book > img { max-width: 220px; margin: 0 auto; } }
 [data-block-index].blk-selected { outline: 3px solid var(--accent-color); outline-offset: -3px; }
 @media (max-width: 768px) { .blk-cards .blk-cards-grid { grid-template-columns: 1fr; } .blk-cards.blk-overlap .blk-cards-grid { margin-top: 0; padding-top: 20px; } .blk-title { font-size: 1.6rem; } .blk-quote blockquote { font-size: 1.3rem; } }
+/* Планшет: карточки в две колонки (на телефоне — в одну, при одной карточке — во всю ширину) */
+@media (max-width: 900px) { .blk-cards .blk-cards-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
 .btn-secondary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 26px; border-radius: 30px; border: 2px solid var(--accent-color); color: var(--accent-color); font-weight: 700; text-decoration: none; }
 .btn-secondary:hover { background: var(--accent-color); color: #fff; }
 .blk-buttons-row { max-width: 1100px; margin: 40px auto; padding: 0 20px; }

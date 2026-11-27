@@ -42,9 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         performSearch(query);
 
-        // Тексты глав грузятся только при первом поиске — потом повторяем поиск с ними
-        if (typeof loadChapterTexts === 'function' && !chapterTextsLoaded) {
-            loadChapterTexts().then(() => {
+        // Полные тексты глав и постов грузятся только при первом поиске — потом повторяем поиск с ними
+        const loads = [];
+        if (typeof loadChapterTexts === 'function' && !chapterTextsLoaded) loads.push(loadChapterTexts());
+        if (typeof loadPostTexts === 'function' && !postTextsLoaded) loads.push(loadPostTexts());
+        if (loads.length) {
+            Promise.all(loads).then(() => {
                 if (searchInput.value.toLowerCase().trim() === query) performSearch(query);
             });
         }

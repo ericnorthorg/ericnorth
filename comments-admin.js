@@ -6,6 +6,8 @@ let CM = { filter: 'pending' };
 
 async function updateCommentsBadge() {
     const { count } = await sb.from('comments').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+    const dot = document.getElementById('m-dot');
+    if (dot) { dot.hidden = !count; dot.title = count ? `Новых комментариев: ${count}` : ''; }
     const item = document.querySelector('#nav .nav-item[data-s="comments"]');
     if (!item) return;
     let b = item.querySelector('.nav-badge');

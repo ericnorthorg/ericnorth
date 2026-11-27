@@ -35,7 +35,7 @@
             try { if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
             var langs = ['en', 'ru', 'uk'], m = location.pathname.match(/^\/(en|ru|uk)(\/|$)/), lang = m && m[1];
             if (!lang) { try { var s = localStorage.getItem('lang'); if (langs.indexOf(s) >= 0) lang = s; } catch (e) {} }
-            if (!lang) { var b = (navigator.languages || [navigator.language || '']).map(function (l) { return String(l).slice(0, 2).toLowerCase(); }).filter(function (l) { return langs.indexOf(l) >= 0; })[0]; lang = b || 'en'; }
+            if (!lang) lang = 'en'; // первый визит без выбранного языка — английский
             document.documentElement.lang = lang;
             window.PAGE_LANG = lang;
         })();
